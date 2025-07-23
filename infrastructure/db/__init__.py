@@ -1,0 +1,1 @@
+from app.alerts.models import Alert
