@@ -9,4 +9,4 @@ async def cmd_start(message: Message):
 
 @router.message(F.text == "/help")
 async def cmd_help(message: Message):
-    await message.answer("Доступные команды:\n/start — начать\n/help — помощь")
+    await message.answer("Доступные команды хуй - 4 :\n/start — начать\n/help — помощь")

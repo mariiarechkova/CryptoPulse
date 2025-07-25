@@ -1,15 +1,66 @@
 # Python
 __pycache__/
 *.py[cod]
-*.sqlite3
+*.pyo
+*.pyd
+*.pyc
 
-# Virtual environment
+# Virtual Environments
+.venv/
+env/
 venv/
-.env
-.venv
+
+# VSCode & PyCharm
+.vscode/
+.idea/
+
+# Byte-compiled / optimized / DLL files
+*.so
+*.dylib
+*.dll
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
 # Logs
 *.log
 
-# OS files
-.DS_Store
-Thumbs.db
+# Environments & dotenv
+.env
+.env.*
+
+# MyPy
+.mypy_cache/
+
+# Pytest
+.cache/
+
+# Coverage
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Watchfiles debug state
+.watchfiles*
+
+# Local database / SQLite / DB dumps (if any)
+*.sqlite3
+*.db
+*.bak
+*.sql
+*.dump
