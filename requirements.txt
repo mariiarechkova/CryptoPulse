@@ -1,0 +1,5 @@
+dotenv
+aiogram
+aiohttp
+psycopg2-binary
+sqlalchemy

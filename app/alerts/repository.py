@@ -1,0 +1,19 @@
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from app.alerts.models import Alert
+
+
+class AlertRepository:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def create(self, symbol: str, target_price: float) -> Alert:
+        alert = Alert(symbol=symbol, target_price=target_price)
+        self.session.add(alert)
+        await self.session.commit()
+        await self.session.refresh(alert)
+        return alert
+
+    async def get_all(self) -> list[Alert]:
+        result = await self.session.execute(select(Alert))
+        return result.scalars().all()
