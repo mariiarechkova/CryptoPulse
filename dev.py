@@ -1,3 +1,6 @@
+import sys
+print(sys.executable)
+
 import subprocess
 import signal
 import platform
@@ -18,7 +21,7 @@ def is_excluded(path: str) -> bool:
 def start_bot():
     print("🔄 Restarting bot...")
     flags = subprocess.CREATE_NEW_PROCESS_GROUP if platform.system() == "Windows" else 0
-    return subprocess.Popen(["python", "main.py"], creationflags=flags)
+    return subprocess.Popen(["C:/Users/marii/PycharmProjects/CryptoPulse/.venv/Scripts/python.exe", "main.py"], creationflags=flags)
 
 
 def stop_bot(p: subprocess.Popen):

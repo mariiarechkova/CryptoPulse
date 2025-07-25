@@ -5,7 +5,7 @@ from alembic import context
 from dotenv import load_dotenv
 
 from infrastructure.db.session import Base
-from app.alerts.models import Alert
+from infrastructure.db.init_models import Alert
 
 load_dotenv()
 DATABASE_URL = os.getenv("SYNC_DATABASE_URL")
