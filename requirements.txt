@@ -1,0 +1,8 @@
+dotenv~=0.9.9
+aiogram~=3.21.0
+aiohttp
+psycopg2-binary
+sqlalchemy~=2.0.41
+watchfiles~=1.1.0
+python-dotenv~=1.1.1
+alembic~=1.16.4
