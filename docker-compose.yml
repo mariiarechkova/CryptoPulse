@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15
@@ -12,6 +10,16 @@ services:
       - '5432:5432'
     volumes:
       - data-postgres:/var/lib/postgresql/data
+
+#  cryptopulse:
+#    build: .
+##    image: cryptopulse:latest
+#    command: python run.py
+#    env_file:
+#      - .env
+#    restart: unless-stopped
+#    depends_on:
+#      - postgres
 
 volumes:
   data-postgres:
