@@ -32,13 +32,13 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_REPO }}:${{ secrets.DOCKER_TAG_PREFIX }}-dev
 
-#      - name: SSH Deploy via deploy.sh
-#        uses: appleboy/ssh-action@v1.2.0
-#        with:
-#          host: ${{ secrets.DEV_SSH_HOST }}
-#          username: ${{ secrets.DEV_SSH_USER }}
-#          key: ${{ secrets.DEV_SSH_KEY }}
-#          port: ${{ secrets.DEV_SSH_PORT }}
-#          script: |
-#            echo "[DEPLOY] Running /srv/config/dev/deploy.sh api"
-#            bash /srv/config/dev/deploy.sh api
+      - name: SSH Deploy via deploy.sh
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEV_SSH_HOST }}
+          username: ${{ secrets.DEV_SSH_USER }}
+          key: ${{ secrets.DEV_SSH_KEY }}
+          port: ${{ secrets.DEV_SSH_PORT }}
+          script: |
+            echo "[DEPLOY] Running /srv/helper/deploy.sh chatbot"
+            bash /srv/helper/deploy.sh chatbot
