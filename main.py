@@ -13,7 +13,7 @@ from app.alerts.services.price_update_service import PriceUpdateService
 from app.bot.routers import setup_router
 from infrastructure.bybit.manager import SubscriptionManager
 from infrastructure.bybit.websocket_client import BybitWebSocketClient
-from infrastructure.db.session import get_session, async_session_maker
+from infrastructure.db.session import async_session_maker
 from infrastructure.logging_config import setup_logging
 
 setup_logging()
