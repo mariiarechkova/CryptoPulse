@@ -26,7 +26,7 @@ def start_bot():
 
 def stop_bot(p: subprocess.Popen):
     if p:
-        print("⛔ Gracefully stopping old bot...")
+        print("Gracefully stopping old bot...")
         try:
             if platform.system() == "Windows":
                 p.send_signal(signal.CTRL_BREAK_EVENT)
@@ -34,7 +34,7 @@ def stop_bot(p: subprocess.Popen):
                 p.send_signal(signal.SIGINT)
             p.wait(timeout=5)
         except Exception as e:
-            print(f"⚠️ Error stopping bot: {e}")
+            print(f"Error stopping bot: {e}")
 
 
 async def debounce_restart():
@@ -53,7 +53,7 @@ async def main():
         if any(is_excluded(str(path)) for path, _ in changes):
             continue
 
-        print("🕒 File changes detected, restarting after delay...")
+        print("File changes detected, restarting after delay...")
 
         if restart_task and not restart_task.done():
             restart_task.cancel()
@@ -69,5 +69,5 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("🛑 Stopped by user")
+        print("Stopped by user")
         stop_bot(proc)

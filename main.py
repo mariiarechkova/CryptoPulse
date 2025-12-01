@@ -27,13 +27,14 @@ async def main():
     bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
 
+    ws_client = BybitWebSocketClient()
+    subscription_manager = SubscriptionManager(ws_client)
+
     price_update_service = PriceUpdateService(
         session_factory=async_session_maker,
         bot=bot,
+        subscription_manager=subscription_manager,
     )
-
-    ws_client = BybitWebSocketClient(price_update_service)
-    subscription_manager = SubscriptionManager(ws_client)
 
     create_alert_service = CreateAlertService(
         session_factory=async_session_maker,
@@ -46,7 +47,11 @@ async def main():
 
     ws_task = None
     try:
-        ws_task = asyncio.create_task(ws_client.connect())
+        ws_task = asyncio.create_task(ws_client.connect(price_update_service.check_price_update))
+        await ws_client.wait_until_connected()
+
+        await price_update_service.warmup_subscriptions()
+
         await dp.start_polling(bot)
 
     except asyncio.CancelledError:

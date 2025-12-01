@@ -1,5 +1,6 @@
+import asyncio
 import logging
-from typing import Set
+from collections import Counter
 
 from infrastructure.bybit.websocket_client import BybitWebSocketClient
 
@@ -8,14 +9,28 @@ logger = logging.getLogger(__name__)
 class SubscriptionManager:
     def __init__(self, ws_client: BybitWebSocketClient):
         self.ws_client = ws_client
-        self.active_symbols: Set[str] = set()
+        self._lock = asyncio.Lock()
+        self._refcount = Counter()
 
     async def ensure_tracking(self, symbol: str) -> None:
-        if symbol in self.active_symbols:
-            logger.debug(f"Already tracking {symbol}")
-            return
+        async with self._lock:
+            prev_count = self._refcount[symbol]
+            self._refcount[symbol] += 1
 
-        await self.ws_client.subscribe_symbol(symbol)
-        self.active_symbols.add(symbol)
-        logger.info(f"Now tracking {symbol}")
+        if prev_count == 0:
+            await self.ws_client.subscribe_symbol(symbol)
+            logger.info(f"Started tracking {symbol}")
+        else:
+            logger.debug(f"{symbol} already tracked (count={self._refcount[symbol]})")
 
+    async def stop_tracking(self, symbol: str) -> None:
+        async with self._lock:
+            if self._refcount[symbol] > 0:
+                self._refcount[symbol] -= 1
+            current = self._refcount[symbol]
+
+        if current == 0:
+            await self.ws_client.unsubscribe_symbol(symbol)
+            logger.info(f"Stopped tracking {symbol}")
+        else:
+            logger.debug(f"Still tracking {symbol} (count={current})")

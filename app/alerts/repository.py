@@ -33,6 +33,14 @@ class AlertRepository:
         )
         return result.scalars().all()
 
+    async def get_all_active(self) -> list[Alert]:
+        result = await self.session.execute(
+            select(Alert).where(
+                Alert.is_active == True
+            ).order_by(Alert.created_at.desc())
+        )
+        return result.scalars().all()
+
     async def deactivate(self, alert_id: int) -> bool:
         result = await self.session.execute(
             update(Alert)

@@ -6,9 +6,10 @@ from app.alerts.services.notification_service import NotificationService
 logger = logging.getLogger(__name__)
 
 class PriceUpdateService:
-    def __init__(self, session_factory, bot):
+    def __init__(self, session_factory, bot, subscription_manager):
         self._session_factory = session_factory
         self.notifier = NotificationService(bot)
+        self.subscription_manager = subscription_manager
 
     async def _trigger_alert(self, alert, current_price: float) -> None:
         await self.notifier.notify_price_hit(
@@ -21,6 +22,8 @@ class PriceUpdateService:
         async with self._session_factory() as session:
             repo = AlertRepository(session)
             await repo.deactivate(alert.id)
+
+        await self.subscription_manager.stop_tracking(alert.symbol)
 
     async def check_price_update(self, symbol: str, current_price: float) -> None:
         async with self._session_factory() as session:
@@ -39,3 +42,13 @@ class PriceUpdateService:
             elif alert.direction == 'down' and current_price <= alert.target_price:
                 logger.info(f"Alert {alert.id} triggered: {symbol} ↓ {current_price}")
                 await self._trigger_alert(alert, current_price)
+
+    async def warmup_subscriptions(self) -> None:
+        async with self._session_factory() as session:
+            repo = AlertRepository(session)
+            alerts = await repo.get_all_active()
+
+        for alert in alerts:
+            await self.subscription_manager.ensure_tracking(alert.symbol)
+
+        logger.info("Warmup done, restored %d alerts", len(alerts))
