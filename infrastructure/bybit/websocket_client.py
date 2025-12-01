@@ -4,17 +4,17 @@ import logging
 
 import websockets
 
-from app.alerts.services.price_update_service import PriceUpdateService
-
 BYBIT_WS_PUBLIC_URL = "wss://stream.bybit.com/v5/public/spot"
 logger = logging.getLogger(__name__)
 
 class BybitWebSocketClient:
-    def __init__(self, price_update_service : PriceUpdateService):
+    def __init__(self):
         self._ws = None
-        self._service = price_update_service
+        self._on_price_update = None
 
-    async def connect(self):
+    async def connect(self, on_price_update):
+        self._on_price_update = on_price_update
+
         logger.info("Connecting to Bybit WS...")
         self._ws = await websockets.connect(BYBIT_WS_PUBLIC_URL)
         logger.info("Connected.")
@@ -24,6 +24,10 @@ class BybitWebSocketClient:
             self._heartbeat_loop(),
         )
 
+    async def wait_until_connected(self):
+        while self._ws is None:
+            await asyncio.sleep(0.05)
+
     async def subscribe_symbol(self, symbol: str):
         msg = {
             "op": "subscribe",
@@ -31,6 +35,14 @@ class BybitWebSocketClient:
         }
         await self._ws.send(json.dumps(msg))
         logger.info(f"Subscribed to {symbol}")
+
+    async def unsubscribe_symbol(self, symbol: str):
+        msg = {
+            "op": "unsubscribe",
+            "args": [f"tickers.{symbol}"],
+        }
+        await self._ws.send(json.dumps(msg))
+        logger.info(f"Unsubscribed from {symbol}")
 
     async def _listen_loop(self):
         async for raw_msg in self._ws:
@@ -77,7 +89,8 @@ class BybitWebSocketClient:
                 return
 
             logger.info(f"{symbol} price update: {price_val}")
-            await self._service.check_price_update(symbol, price_val)
+            if self._on_price_update is not None:
+                await self._on_price_update(symbol, price_val)
 
     async def close(self):
         if self._ws is not None:
