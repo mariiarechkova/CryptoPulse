@@ -41,6 +41,18 @@ class AlertRepository:
         )
         return result.scalars().all()
 
+    async def get_by_id_and_user(self, alert_id: int, user_id: int):
+        stmt = (
+            select(Alert)
+            .where(
+                Alert.id == alert_id,
+                Alert.user_id == user_id,
+                Alert.is_active == True,
+            )
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def deactivate(self, alert_id: int) -> bool:
         result = await self.session.execute(
             update(Alert)

@@ -1,11 +1,15 @@
 from aiogram import Router, F
+from aiogram.filters import Command
 from aiogram.types import Message
+
+from app.bot.keyboards import main_menu_keyboard
 
 router = Router()
 
-@router.message(F.text == "/start")
+@router.message(Command('start'))
 async def cmd_start(message: Message):
-    await message.answer("Привет! Это бот. Напиши /help для команд.")
+    await message.answer("Готов следить за рынком ⚡ \nВыберите, что хотите сделать:",
+                         reply_markup=main_menu_keyboard())
 
 @router.message(F.text == "/help")
 async def cmd_help(message: Message):

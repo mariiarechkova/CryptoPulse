@@ -23,7 +23,7 @@ class CreateAlertService:
 
         parts = text.split()
         if len(parts) != 3:
-            raise ValueError("Неверный формат. Используй, например: BTCUSDT 105000 [up/down]")
+            raise ValueError("Неверный формат. Используй, например: BTCUSDT 105000 up/down")
 
         symbol = parts[0].upper()
         price_str = parts[1]
@@ -47,3 +47,19 @@ class CreateAlertService:
             alert = await repo.create(symbol, price, user_id, direction)
         await self.subscription.ensure_tracking(symbol)
         return alert
+
+    async def deactivate_alert(self, alert_id, user_id):
+        async with self._session_factory() as session:
+            repo = AlertRepository(session)
+            alert = await repo.get_by_id_and_user(alert_id, user_id)
+            if alert is None:
+                return False
+
+            symbol = alert.symbol
+
+            updated = await repo.deactivate(alert.id)
+            if not updated:
+                return False
+
+        await self.subscription.stop_tracking(symbol)
+        return True
