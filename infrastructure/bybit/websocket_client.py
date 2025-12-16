@@ -88,7 +88,7 @@ class BybitWebSocketClient:
                 logger.warning(f"Bad price {last_price} for {symbol}")
                 return
 
-            logger.info(f"{symbol} price update: {price_val}")
+            logger.debug(f"{symbol} price update: {price_val}")
             if self._on_price_update is not None:
                 await self._on_price_update(symbol, price_val)
 

@@ -9,7 +9,7 @@ load_dotenv()
 DATABASE_URL = os.getenv("ASYNC_DATABASE_URL")
 
 # 1. Creating an engine
-engine = create_async_engine(DATABASE_URL, echo=True)
+engine = create_async_engine(DATABASE_URL)
 
 # 2. Session Factory
 async_session_maker = async_sessionmaker(engine, class_=AsyncSession)

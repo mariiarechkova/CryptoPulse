@@ -1,13 +1,16 @@
+import asyncio
+
 from aiogram import Router, F
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from app.bot.keyboards import confirm_delete_keyboard, main_menu_keyboard
+from app.bot.parsers.create_alert_parser import parse_create_alert_message
 from app.bot.states import AlertStates
 
 
-def build_router(create_alert_service) -> Router:
+def build_router(create_alert_service, market_data_workflow) -> Router:
     router = Router()
 
     @router.message(F.text == '📋 Мои алерты')
@@ -115,7 +118,10 @@ def build_router(create_alert_service) -> Router:
             case "confirm":
                 selected = data["selected"]
                 alert_id = selected["id"]
-                ok = await create_alert_service.deactivate_alert(alert_id, user_id)
+                ok = await market_data_workflow.deactivate_alert_and_unsubscribe(
+                    alert_id=alert_id,
+                    user_id=user_id,
+                )
                 await state.clear()
 
                 reply = (
@@ -136,10 +142,24 @@ def build_router(create_alert_service) -> Router:
     @router.message(StateFilter(None), F.text)
     async def handle_alert_message(message: Message):
         try:
-            alert = await create_alert_service.create_alert_from_message(message)
+            symbol, price, direction, user_id = parse_create_alert_message(
+                message.text,
+                message.from_user.id,
+            )
+
+            alert = await market_data_workflow.create_alert_and_subscribe(
+                user_id=user_id,
+                symbol=symbol,
+                price=price,
+                direction=direction,
+            )
+
             await message.answer(f"Алерт сохранён: {alert.symbol} {alert.target_price} {alert.direction}")
+
+            asyncio.create_task(
+                market_data_workflow.download_daily_candles(alert.symbol)
+            )
         except ValueError as e:
             await message.answer(str(e))
 
     return router
-
