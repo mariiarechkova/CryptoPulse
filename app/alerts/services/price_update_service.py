@@ -5,22 +5,24 @@ from app.alerts.services.notification_service import NotificationService
 
 logger = logging.getLogger(__name__)
 
+
 class PriceUpdateService:
-    def __init__(self, alert_repo: AlertRepository, bot, subscription_manager):
-            self.notifier = NotificationService(bot)
-            self.subscription_manager = subscription_manager
-            self._alert_repo = alert_repo
+    def __init__(
+        self, alert_repo: AlertRepository, bot, subscription_manager, alert_message_builder
+    ):
+        self.notifier = NotificationService(bot)
+        self.subscription_manager = subscription_manager
+        self._alert_repo = alert_repo
+        self._msg_builder = alert_message_builder
 
     async def _trigger_alert(self, alert, current_price: float) -> None:
-        await self.notifier.notify_price_hit(
-            user_id=alert.user_id,
-            symbol=alert.symbol,
-            target_price=alert.target_price,
+        text = await self._msg_builder.build_price_hit_message(
+            alert=alert,
             current_price=current_price,
-            direction=alert.direction,
         )
-        await self._alert_repo.deactivate(alert.id)
 
+        await self.notifier.notify_text(user_id=alert.user_id, text=text)
+        await self._alert_repo.deactivate(alert.id)
         await self.subscription_manager.stop_tracking(alert.symbol)
 
     async def check_price_update(self, symbol: str, current_price: float) -> None:

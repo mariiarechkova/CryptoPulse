@@ -1,9 +1,10 @@
 import logging
 
-from app.alerts.repository import AlertRepository
 from app.alerts.models import Alert
+from app.alerts.repository import AlertRepository
 
 logger = logging.getLogger(__name__)
+
 
 class AlertService:
     def __init__(self, alert_repo: AlertRepository):

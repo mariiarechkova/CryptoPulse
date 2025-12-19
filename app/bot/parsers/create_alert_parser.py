@@ -17,8 +17,8 @@ def parse_create_alert_message(text: str, user_id: int) -> tuple[str, float, str
         price = float(price_raw)
         if price <= 0:
             raise ValueError
-    except ValueError:
-        raise ValueError("Цена должна быть положительным числом.")
+    except ValueError as err:
+        raise ValueError("Цена должна быть положительным числом.") from err
 
     if direction not in ("up", "down"):
         raise ValueError("Направление должно быть 'up' или 'down'")

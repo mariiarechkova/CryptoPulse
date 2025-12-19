@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, String, DateTime, func, Enum, UniqueConstraint
+from sqlalchemy import DateTime, Enum, ForeignKey, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from infrastructure.db.session import Base
@@ -11,9 +11,11 @@ class UserCoin(Base):
     __tablename__ = "user_coins"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"),
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,)
+        index=True,
+    )
     symbol: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     has_active_alerts: Mapped[bool] = mapped_column(
         nullable=False,
@@ -32,10 +34,12 @@ class UserCoin(Base):
 
     user = relationship("User", back_populates="coins")
 
+
 class Timeframe(str, enum.Enum):
     D1 = "D1"
     H4 = "H4"
     H1 = "H1"
+
 
 class Candle(Base):
     __tablename__ = "candles"
@@ -43,15 +47,9 @@ class Candle(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     symbol: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     timeframe: Mapped[Timeframe] = mapped_column(
-        Enum(Timeframe, name="candle_timeframe"),
-        nullable=False,
-        index=True
+        Enum(Timeframe, name="candle_timeframe"), nullable=False, index=True
     )
-    open_time: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        index=True
-    )
+    open_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
 
     # prices
     open: Mapped[float] = mapped_column(nullable=False)
@@ -67,8 +65,4 @@ class Candle(Base):
         server_default=func.now(),
     )
     # uniqueness of candle
-    __table_args__ = (
-        UniqueConstraint("symbol", "timeframe", "open_time"),
-    )
-
-
+    __table_args__ = (UniqueConstraint("symbol", "timeframe", "open_time"),)

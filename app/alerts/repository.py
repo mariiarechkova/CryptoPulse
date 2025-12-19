@@ -1,6 +1,5 @@
-from typing import Optional
-
 from sqlalchemy import select, update
+
 from app.alerts.models import Alert
 
 
@@ -8,8 +7,9 @@ class AlertRepository:
     def __init__(self, session_factory):
         self._session_factory = session_factory
 
-
-    async def create(self, symbol: str, target_price: float, user_id: int, direction:Optional[str] ) -> Alert:
+    async def create(
+        self, symbol: str, target_price: float, user_id: int, direction: str | None
+    ) -> Alert:
         async with self._session_factory() as session:
             alert = Alert(
                 symbol=symbol,
@@ -43,21 +43,16 @@ class AlertRepository:
     async def get_all_active(self) -> list[Alert]:
         async with self._session_factory() as session:
             result = await session.execute(
-                select(Alert)
-                .where(Alert.is_active.is_(True))
-                .order_by(Alert.created_at.desc())
+                select(Alert).where(Alert.is_active.is_(True)).order_by(Alert.created_at.desc())
             )
             return result.scalars().all()
 
     async def get_by_id_and_user(self, alert_id: int, user_id: int):
         async with self._session_factory() as session:
-            stmt = (
-                select(Alert)
-                .where(
-                    Alert.id == alert_id,
-                    Alert.user_id == user_id,
-                    Alert.is_active.is_(True),
-                )
+            stmt = select(Alert).where(
+                Alert.id == alert_id,
+                Alert.user_id == user_id,
+                Alert.is_active.is_(True),
             )
             result = await session.execute(stmt)
             return result.scalar_one_or_none()
@@ -65,9 +60,7 @@ class AlertRepository:
     async def deactivate(self, alert_id: int) -> bool:
         async with self._session_factory() as session:
             result = await session.execute(
-                update(Alert)
-                .where(Alert.id == alert_id)
-                .values(is_active=False)
+                update(Alert).where(Alert.id == alert_id).values(is_active=False)
             )
             await session.commit()
             return result.rowcount > 0

@@ -6,6 +6,7 @@ from infrastructure.bybit.websocket_client import BybitWebSocketClient
 
 logger = logging.getLogger(__name__)
 
+
 class SubscriptionManager:
     def __init__(self, ws_client: BybitWebSocketClient):
         self.ws_client = ws_client

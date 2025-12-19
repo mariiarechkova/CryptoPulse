@@ -1,9 +1,10 @@
-from contextlib import asynccontextmanager
-from typing import AsyncGenerator
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import DeclarativeBase
-from dotenv import load_dotenv
 import os
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+
+from dotenv import load_dotenv
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import DeclarativeBase
 
 load_dotenv()
 DATABASE_URL = os.getenv("ASYNC_DATABASE_URL")
@@ -14,9 +15,11 @@ engine = create_async_engine(DATABASE_URL)
 # 2. Session Factory
 async_session_maker = async_sessionmaker(engine, class_=AsyncSession)
 
+
 # 3. The base class of models
 class Base(DeclarativeBase):
     pass
+
 
 # 4. generator for getting a session
 @asynccontextmanager
