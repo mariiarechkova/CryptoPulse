@@ -1,5 +1,6 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
+
 import httpx
 
 from app.market.models import Timeframe
@@ -9,7 +10,7 @@ class BybitRestClient:
     _TF_TO_INTERVAL: dict[Timeframe, str] = {
         Timeframe.D1: "D",
         Timeframe.H4: "240",  # 4h = 240 minutes
-        Timeframe.H1: "60",   # 1h = 60 minutes
+        Timeframe.H1: "60",  # 1h = 60 minutes
     }
 
     def __init__(self, base_url: str, category: str = "spot", timeout_s: float = 15.0) -> None:
@@ -17,7 +18,9 @@ class BybitRestClient:
         self._category = category
         self._timeout = timeout_s
 
-    async def fetch_history(self, symbol: str, timeframe: Timeframe, limit: int) -> list[dict[str, Any]]:
+    async def fetch_history(
+        self, symbol: str, timeframe: Timeframe, limit: int
+    ) -> list[dict[str, Any]]:
         symbol = symbol.upper()
         bybit_interval = self._TF_TO_INTERVAL[timeframe]
 
@@ -47,7 +50,7 @@ class BybitRestClient:
             open_ms = int(row[0])
             candles.append(
                 {
-                    "open_time": datetime.fromtimestamp(open_ms / 1000, tz=timezone.utc),
+                    "open_time": datetime.fromtimestamp(open_ms / 1000, tz=UTC),
                     "open": float(row[1]),
                     "high": float(row[2]),
                     "low": float(row[3]),

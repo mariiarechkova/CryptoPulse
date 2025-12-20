@@ -1,13 +1,12 @@
-from sqlalchemy import select
+from sqlalchemy import desc, select
 from sqlalchemy.dialects.postgresql import insert
 
-from app.market.models import Timeframe, Candle
+from app.market.models import Candle, Timeframe
 
 
 class CandleRepository:
     def __init__(self, session_factory) -> None:
         self._session_factory = session_factory
-
 
     async def has_any(self, symbol: str, timeframe: Timeframe) -> bool:
         async with self._session_factory() as session:
@@ -35,11 +34,24 @@ class CandleRepository:
         stmt = (
             insert(Candle)
             .values(values)
-            .on_conflict_do_nothing(
-                index_elements=["symbol", "timeframe", "open_time"]
-            )
+            .on_conflict_do_nothing(index_elements=["symbol", "timeframe", "open_time"])
         )
 
         async with self._session_factory() as session:
             await session.execute(stmt)
             await session.commit()
+
+    async def get_latest(self, symbol: str, timeframe: Timeframe, limit: int) -> list[Candle]:
+        if limit <= 0:
+            return []
+
+        async with self._session_factory() as session:
+            stmt = (
+                select(Candle)
+                .where(Candle.symbol == symbol, Candle.timeframe == timeframe)
+                .order_by(desc(Candle.open_time))
+                .limit(limit)
+            )
+            rows = (await session.execute(stmt)).scalars().all()
+
+        return list(reversed(rows))

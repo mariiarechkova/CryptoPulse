@@ -1,32 +1,40 @@
-from infrastructure.logging_config import setup_logging
-
 import asyncio
 import contextlib
 import logging
 import os
-import infrastructure.db.init_models
-from dotenv import load_dotenv
-from aiogram import Bot, Dispatcher
-from aiogram.enums.parse_mode import ParseMode
-from aiogram.client.default import DefaultBotProperties
 
+from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums.parse_mode import ParseMode
+from dotenv import load_dotenv
+
+from app.alerts.formatters.levels_text_formatter import LevelsPlainFormatter
+from app.alerts.formatters.price_hit_formatter import PriceHitFormatter
 from app.alerts.repository import AlertRepository
+from app.alerts.services.alert_message_builder import AlertMessageBuilder
 from app.alerts.services.alert_service import AlertService
 from app.alerts.services.price_update_service import PriceUpdateService
-from app.config import settings
-from app.market.repository import CandleRepository
-from app.workflows.market_data_workflow import MarketDataWorkflow
 from app.bot.routers import setup_router
+from app.config import settings
+from app.market.levels.atr_calculator import ATRCalculator
+from app.market.levels.level_classifier import LevelClassifier
+from app.market.levels.level_clusterer import LevelClusterer
+from app.market.levels.pivot_detector import PivotDetector
+from app.market.repository import CandleRepository
 from app.market.services.candle_service import CandleService
+from app.workflows.levels_workflow import LevelsWorkflow
+from app.workflows.market_data_workflow import MarketDataWorkflow
 from infrastructure.bybit.manager import SubscriptionManager
 from infrastructure.bybit.rest_client import BybitRestClient
 from infrastructure.bybit.websocket_client import BybitWebSocketClient
 from infrastructure.db.session import async_session_maker
+from infrastructure.logging_config import setup_logging
 
 setup_logging()
 logger = logging.getLogger("main")
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
+
 
 async def main():
     logger.info("Logging configured successfully!")
@@ -45,10 +53,35 @@ async def main():
     candle_repo = CandleRepository(async_session_maker)
     candle_service = CandleService(candle_repo=candle_repo)
 
+    # Levels stack + formatters
+
+    atr_calculator = ATRCalculator()
+    pivot_detector = PivotDetector()
+    level_clusterer = LevelClusterer()
+    level_classifier = LevelClassifier()
+
+    levels_workflow = LevelsWorkflow(
+        atr_calculator=atr_calculator,
+        pivot_detector=pivot_detector,
+        level_clusterer=level_clusterer,
+        level_classifier=level_classifier,
+    )
+
+    price_hit_formatter = PriceHitFormatter()
+    levels_formatter = LevelsPlainFormatter()
+
+    alert_message_builder = AlertMessageBuilder(
+        price_hit_formatter=price_hit_formatter,
+        levels_formatter=levels_formatter,
+        candle_service=candle_service,
+        levels_workflow=levels_workflow,
+    )
+
     price_update_service = PriceUpdateService(
         alert_repo=alert_repo,
         bot=bot,
         subscription_manager=subscription_manager,
+        alert_message_builder=alert_message_builder,
     )
 
     market_data_workflow = MarketDataWorkflow(
@@ -87,7 +120,6 @@ async def main():
             logger.exception("WS close failed")
         await bot.session.close()
         logger.info("Bot stopped cleanly.")
-
 
 
 if __name__ == "__main__":

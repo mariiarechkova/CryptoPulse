@@ -4,6 +4,7 @@ from app.market.models import Timeframe
 
 logger = logging.getLogger(__name__)
 
+
 class MarketDataWorkflow:
     def __init__(self, alert_service, subscription_manager, candle_service, bybit_rest_client):
         self._bybit_rest_client = bybit_rest_client
@@ -11,7 +12,9 @@ class MarketDataWorkflow:
         self._subscription_manager = subscription_manager
         self._candle_service = candle_service
 
-    async def create_alert_and_subscribe(self, user_id: int, symbol: str, price: float, direction: str):
+    async def create_alert_and_subscribe(
+        self, user_id: int, symbol: str, price: float, direction: str
+    ):
         alert = await self._alert_service.create(
             user_id=user_id,
             symbol=symbol,

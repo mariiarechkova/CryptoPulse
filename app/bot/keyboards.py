@@ -1,4 +1,4 @@
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 
 
 def main_menu_keyboard() -> ReplyKeyboardMarkup:
@@ -10,6 +10,7 @@ def main_menu_keyboard() -> ReplyKeyboardMarkup:
         resize_keyboard=True,
     )
     return keyboard
+
 
 def confirm_delete_keyboard() -> ReplyKeyboardMarkup:
     keyboard = ReplyKeyboardMarkup(

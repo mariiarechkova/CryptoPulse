@@ -1,11 +1,11 @@
 import os
 from logging.config import fileConfig
-from sqlalchemy import create_engine, pool
+
 from alembic import context
 from dotenv import load_dotenv
+from sqlalchemy import create_engine, pool
 
 from infrastructure.db.session import Base
-from infrastructure.db.init_models import Alert
 
 load_dotenv()
 DATABASE_URL = os.getenv("SYNC_DATABASE_URL")
@@ -17,6 +17,7 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
+
 def run_migrations_offline() -> None:
     context.configure(
         url=DATABASE_URL,
@@ -27,6 +28,7 @@ def run_migrations_offline() -> None:
     with context.begin_transaction():
         context.run_migrations()
 
+
 def run_migrations_online() -> None:
     connectable = create_engine(DATABASE_URL, poolclass=pool.NullPool)
 
@@ -35,6 +37,7 @@ def run_migrations_online() -> None:
 
         with context.begin_transaction():
             context.run_migrations()
+
 
 if context.is_offline_mode():
     run_migrations_offline()

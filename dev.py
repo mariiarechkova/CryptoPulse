@@ -1,13 +1,14 @@
-import sys
-print(sys.executable)
-
-import subprocess
-import signal
-import platform
 import asyncio
+import platform
+import signal
+import subprocess
+import sys
+
 from watchfiles import awatch
 
-EXCLUDED_PATTERNS = ('.venv', '__pycache__', '.git', '.idea', '.mypy_cache')
+print(sys.executable)
+
+EXCLUDED_PATTERNS = (".venv", "__pycache__", ".git", ".idea", ".mypy_cache")
 RESTART_DELAY = 1.2
 
 proc = None
@@ -21,7 +22,10 @@ def is_excluded(path: str) -> bool:
 def start_bot():
     print("🔄 Restarting bot...")
     flags = subprocess.CREATE_NEW_PROCESS_GROUP if platform.system() == "Windows" else 0
-    return subprocess.Popen(["C:/Users/marii/PycharmProjects/CryptoPulse/.venv/Scripts/python.exe", "main.py"], creationflags=flags)
+    return subprocess.Popen(
+        ["C:/Users/marii/PycharmProjects/CryptoPulse/.venv/Scripts/python.exe", "main.py"],
+        creationflags=flags,
+    )
 
 
 def stop_bot(p: subprocess.Popen):

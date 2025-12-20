@@ -1,6 +1,6 @@
 import asyncio
 
-from aiogram import Router, F
+from aiogram import F, Router
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
@@ -13,7 +13,7 @@ from app.bot.states import AlertStates
 def build_router(create_alert_service, market_data_workflow) -> Router:
     router = Router()
 
-    @router.message(F.text == '📋 Мои алерты')
+    @router.message(F.text == "📋 Мои алерты")
     @router.message(Command("alerts"))
     async def list_alerts(message: Message, state: FSMContext):
         await state.clear()
@@ -30,11 +30,10 @@ def build_router(create_alert_service, market_data_workflow) -> Router:
         text = "Твои активные алерты:\n\n" + "\n".join(lines)
         await message.answer(text)
 
-    @router.message(F.text == '➕ Создать алерт')
-    async def create_alert_help(message:Message, state: FSMContext):
+    @router.message(F.text == "➕ Создать алерт")
+    async def create_alert_help(message: Message, state: FSMContext):
         await state.clear()
-        await message.answer('Укажи характеристики алерта, например: \n'
-                             'BTCUSDT 105000 up/down')
+        await message.answer("Укажи характеристики алерта, например: \n" "BTCUSDT 105000 up/down")
 
     @router.message(F.text == "🗑 Удалить алерт")
     async def ask_which_alert_to_delete(message: Message, state: FSMContext):
@@ -66,10 +65,10 @@ def build_router(create_alert_service, market_data_workflow) -> Router:
         await message.answer(text)
 
     @router.message(AlertStates.waiting_for_alert_index)
-    async def handle_alert_index(message: Message, state:FSMContext):
+    async def handle_alert_index(message: Message, state: FSMContext):
         text = message.text.strip()
         if not text.isdigit():
-            await message.answer('Введи порядковый номер алерта(число)')
+            await message.answer("Введи порядковый номер алерта(число)")
             return
 
         index = int(text)
@@ -77,7 +76,7 @@ def build_router(create_alert_service, market_data_workflow) -> Router:
         data = await state.get_data()
         alerts = data["alerts"]
         if index < 1 or index > len(alerts):
-            await message.answer('Введeн неверный номер алерта')
+            await message.answer("Введeн неверный номер алерта")
             return
 
         selected_alert = alerts[index - 1]
@@ -90,7 +89,7 @@ def build_router(create_alert_service, market_data_workflow) -> Router:
             f"Вы выбрали:\n\n"
             f"{selected_alert['symbol']} price {selected_alert['target_price']} {selected_alert['direction']}\n\n"
             "Удалить этот алерт?",
-            reply_markup=confirm_delete_keyboard()
+            reply_markup=confirm_delete_keyboard(),
         )
 
     @router.message(AlertStates.waiting_for_confirmation)
@@ -124,11 +123,7 @@ def build_router(create_alert_service, market_data_workflow) -> Router:
                 )
                 await state.clear()
 
-                reply = (
-                    "Не получилось отключить алерт 😕"
-                    if not ok
-                    else "Алерт удалён 🗑️"
-                )
+                reply = "Не получилось отключить алерт 😕" if not ok else "Алерт удалён 🗑️"
 
                 await message.answer(reply, reply_markup=main_menu_keyboard())
                 return
@@ -137,7 +132,6 @@ def build_router(create_alert_service, market_data_workflow) -> Router:
                 await message.answer(
                     "Отправь: «Да, удалить» или «Отмена».",
                 )
-
 
     @router.message(StateFilter(None), F.text)
     async def handle_alert_message(message: Message):
@@ -154,11 +148,11 @@ def build_router(create_alert_service, market_data_workflow) -> Router:
                 direction=direction,
             )
 
-            await message.answer(f"Алерт сохранён: {alert.symbol} {alert.target_price} {alert.direction}")
-
-            asyncio.create_task(
-                market_data_workflow.download_daily_candles(alert.symbol)
+            await message.answer(
+                f"Алерт сохранён: {alert.symbol} {alert.target_price} {alert.direction}"
             )
+
+            asyncio.create_task(market_data_workflow.download_daily_candles(alert.symbol))
         except ValueError as e:
             await message.answer(str(e))
 
