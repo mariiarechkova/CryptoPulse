@@ -4,6 +4,7 @@ import logging
 import os
 
 import infrastructure.db.init_models # noqa: F401
+
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums.parse_mode import ParseMode
