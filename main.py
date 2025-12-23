@@ -4,7 +4,6 @@ import logging
 import os
 
 import infrastructure.db.init_models # noqa: F401
-
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums.parse_mode import ParseMode
@@ -18,6 +17,7 @@ from app.alerts.services.alert_service import AlertService
 from app.alerts.services.price_update_service import PriceUpdateService
 from app.bot.routers import setup_router
 from app.config import settings
+from app.llm.services.llm_service import LLMService
 from app.market.levels.atr_calculator import ATRCalculator
 from app.market.levels.level_classifier import LevelClassifier
 from app.market.levels.level_clusterer import LevelClusterer
@@ -30,6 +30,7 @@ from infrastructure.bybit.manager import SubscriptionManager
 from infrastructure.bybit.rest_client import BybitRestClient
 from infrastructure.bybit.websocket_client import BybitWebSocketClient
 from infrastructure.db.session import async_session_maker
+from infrastructure.llm.openai_client import OpenAIClient
 from infrastructure.logging_config import setup_logging
 
 setup_logging()
@@ -72,11 +73,22 @@ async def main():
     price_hit_formatter = PriceHitFormatter()
     levels_formatter = LevelsPlainFormatter()
 
+    llm_client = OpenAIClient(
+        api_key=settings.OPENAI_API_KEY,
+        model=settings.OPENAI_MODEL,
+    )
+    llm_service = LLMService(
+        llm_client,
+        enabled=settings.LLM_ENABLED,
+        timeout_seconds=settings.LLM_TIMEOUT_SECONDS,
+    )
+
     alert_message_builder = AlertMessageBuilder(
         price_hit_formatter=price_hit_formatter,
         levels_formatter=levels_formatter,
         candle_service=candle_service,
         levels_workflow=levels_workflow,
+        llm_service=llm_service,
     )
 
     price_update_service = PriceUpdateService(

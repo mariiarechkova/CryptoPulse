@@ -8,12 +8,13 @@ class PriceHitFormatter:
         direction: str | None,
     ) -> str:
         if direction == "up":
-            verb = "пробил уровень"
+            verb = "поднялся выше ценового уровня алерта"
         elif direction == "down":
-            verb = "упал ниже уровня"
+            verb = "опустился ниже ценового уровня алерта"
         else:
-            verb = "достиг твоего уровня"
+            verb = "достиг ценового уровня алерта"
 
         return (
-            f"{symbol} {verb} уровень {target_price:,.2f}\n" f"Текущая цена: {current_price:,.2f}"
+            f"{symbol} {verb} {target_price:,.2f}\n"
+            f"Текущая цена: {current_price:,.2f}"
         )
