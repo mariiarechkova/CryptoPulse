@@ -12,11 +12,13 @@ class AlertMessageBuilder:
         levels_formatter,
         candle_service,
         levels_workflow,
+        llm_service=None
     ) -> None:
         self._base_fmt = price_hit_formatter
         self._levels_fmt = levels_formatter
         self._candles = candle_service
         self._levels = levels_workflow
+        self._llm = llm_service
 
     async def build_price_hit_message(self, alert, current_price: float) -> str:
         text = self._base_fmt.format(
@@ -44,5 +46,8 @@ class AlertMessageBuilder:
             text += self._levels_fmt.format(levels)
         except Exception:
             logger.exception("Failed to append levels for alert=%s", getattr(alert, "id", None))
+
+        if self._llm is not None:
+            text = await self._llm.explain_alert(text)
 
         return text

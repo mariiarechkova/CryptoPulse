@@ -51,7 +51,7 @@ class LevelsWorkflow:
 
         atr = self._atr.calculate(candles)
         tolerance = atr * self._cfg.atr_mult
-        price_cap = current_price * 0.01  # 1% price
+        price_cap = current_price * 0.02  # 2% price
 
         tolerance = min(tolerance, price_cap)
 
