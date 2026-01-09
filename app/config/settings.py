@@ -11,3 +11,9 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
 LLM_TIMEOUT_SECONDS = int(os.getenv("LLM_TIMEOUT_SECONDS", "8"))
+
+# --- CryptoBot / CryptoPay ---
+
+CRYPTOBOT_API_TOKEN = os.getenv("CRYPTOBOT_API_TOKEN")
+CRYPTOBOT_BASE_URL = os.getenv("CRYPTOBOT_BASE_URL", "https://pay.crypt.bot/api")
+CRYPTOBOT_TIMEOUT_SECONDS = int(os.getenv("CRYPTOBOT_TIMEOUT_SECONDS", "10"))
