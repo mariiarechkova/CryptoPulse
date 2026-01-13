@@ -1,4 +1,5 @@
 from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.alerts.models import Alert
 
@@ -8,19 +9,18 @@ class AlertRepository:
         self._session_factory = session_factory
 
     async def create(
-        self, symbol: str, target_price: float, user_id: int, direction: str | None
+        self, session: AsyncSession, symbol: str, target_price: float, user_id: int, direction: str | None
     ) -> Alert:
-        async with self._session_factory() as session:
-            alert = Alert(
-                symbol=symbol,
-                target_price=target_price,
-                user_id=user_id,
-                direction=direction,
-            )
-            session.add(alert)
-            await session.commit()
-            await session.refresh(alert)
-            return alert
+        alert = Alert(
+            symbol=symbol,
+            target_price=target_price,
+            user_id=user_id,
+            direction=direction,
+        )
+        session.add(alert)
+        await session.flush()
+        await session.refresh(alert)
+        return alert
 
     async def get_all(self, user_id: int) -> list[Alert]:
         async with self._session_factory() as session:
@@ -64,3 +64,11 @@ class AlertRepository:
             )
             await session.commit()
             return result.rowcount > 0
+
+    async def get_active_symbols_in_session(self, session: AsyncSession, telegram_id: int) -> set[str]:
+        result = await session.execute(
+            select(Alert.symbol)
+            .where(Alert.user_id == telegram_id, Alert.is_active.is_(True))
+            .distinct()
+        )
+        return {row[0] for row in result.all()}

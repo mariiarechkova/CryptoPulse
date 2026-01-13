@@ -15,7 +15,6 @@ class NotificationService:
         logger.info("Sending alert to user %s", user_id)
         await self.bot.send_message(
             chat_id=user_id,
-            text=text,
-            reply_markup=buy_subscription_kb(),
+            text=text
         )
         logger.info("Alert delivered to user %s", user_id)

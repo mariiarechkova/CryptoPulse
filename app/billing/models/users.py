@@ -1,9 +1,8 @@
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, Enum as SAEnum, String, func, Integer, ForeignKey
+from sqlalchemy import BigInteger, DateTime, String, func, Integer, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.billing.enums import TariffCode
 from infrastructure.db.session import Base
 
 

@@ -1,6 +1,3 @@
-import inspect
-import os
-
 from aiogram import Router, F
 from aiogram.types import CallbackQuery
 
@@ -9,12 +6,13 @@ from app.billing.repositories.payment_repository import PaymentRepository
 from app.billing.repositories.tariff_plan_repository import TariffPlanRepository
 from app.billing.repositories.user_repository import UserRepository
 from app.billing.services.payment_invoice_service import PaymentInvoiceService
+from app.config import settings
 from infrastructure.cryptobot.cryptopay_client import CryptoPayClient
 from infrastructure.db.session import async_session_maker
 
 router = Router()
 
-cryptopay = CryptoPayClient(api_token=os.environ["CRYPTOBOT_API_TOKEN"])
+cryptopay = CryptoPayClient(api_token=settings.CRYPTOBOT_API_TOKEN, base_url=settings.CRYPTOBOT_BASE_URL,)
 
 
 @router.callback_query(F.data == "buy_subscription")

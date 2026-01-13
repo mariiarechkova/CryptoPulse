@@ -5,7 +5,8 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
-from app.bot.keyboards import confirm_delete_keyboard, main_menu_keyboard
+from app.alerts.services.alert_service import ActiveSymbolLimitError
+from app.bot.keyboards import confirm_delete_keyboard, main_menu_keyboard, buy_subscription_kb
 from app.bot.parsers.create_alert_parser import parse_create_alert_message
 from app.bot.states import AlertStates
 
@@ -136,13 +137,10 @@ def build_router(create_alert_service, market_data_workflow) -> Router:
     @router.message(StateFilter(None), F.text)
     async def handle_alert_message(message: Message):
         try:
-            symbol, price, direction, user_id = parse_create_alert_message(
-                message.text,
-                message.from_user.id,
-            )
+            symbol, price, direction = parse_create_alert_message(message.text)
 
             alert = await market_data_workflow.create_alert_and_subscribe(
-                user_id=user_id,
+                telegram_id=message.from_user.id,
                 symbol=symbol,
                 price=price,
                 direction=direction,
@@ -153,6 +151,14 @@ def build_router(create_alert_service, market_data_workflow) -> Router:
             )
 
             asyncio.create_task(market_data_workflow.download_daily_candles(alert.symbol))
+
+        except ActiveSymbolLimitError:
+            await message.answer(
+                "В бесплатной версии можно отслеживать только одну монету.\n"
+                "Оформи подписку и получи возможность отслеживать до 10 монет одновременно.",
+                reply_markup=buy_subscription_kb(),
+            )
+
         except ValueError as e:
             await message.answer(str(e))
 

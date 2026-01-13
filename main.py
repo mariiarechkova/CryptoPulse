@@ -14,6 +14,8 @@ from app.alerts.formatters.price_hit_formatter import PriceHitFormatter
 from app.alerts.repository import AlertRepository
 from app.alerts.services.alert_message_builder import AlertMessageBuilder
 from app.alerts.services.alert_service import AlertService
+from app.alerts.services.levels_manual_service import LevelsManualService
+from app.alerts.services.levels_text_builder import LevelsTextBuilder
 from app.alerts.services.price_update_service import PriceUpdateService
 from app.bot.routers import setup_router
 from app.config import settings
@@ -51,7 +53,7 @@ async def main():
     subscription_manager = SubscriptionManager(ws_client)
 
     alert_repo = AlertRepository(async_session_maker)
-    alert_service = AlertService(alert_repo=alert_repo)
+    alert_service = AlertService(alert_repo=alert_repo, session_factory=async_session_maker)
 
     candle_repo = CandleRepository(async_session_maker)
     candle_service = CandleService(candle_repo=candle_repo)
@@ -104,8 +106,18 @@ async def main():
         subscription_manager=subscription_manager,
         candle_service=candle_service,
     )
+    levels_text_builder = LevelsTextBuilder(
+        market_data_workflow=market_data_workflow,
+        levels_workflow=levels_workflow,
+        levels_formatter=levels_formatter,
+    )
 
-    dp.include_router(setup_router(alert_service, market_data_workflow))
+    levels_manual_service = LevelsManualService(
+        session_factory=async_session_maker,
+        text_builder=levels_text_builder,
+    )
+
+    dp.include_router(setup_router(alert_service, market_data_workflow, levels_manual_service))
 
     logger.info("Bot and WS are starting...")
 

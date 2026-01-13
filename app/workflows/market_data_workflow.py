@@ -13,10 +13,10 @@ class MarketDataWorkflow:
         self._candle_service = candle_service
 
     async def create_alert_and_subscribe(
-        self, user_id: int, symbol: str, price: float, direction: str
+        self, telegram_id: int, symbol: str, price: float, direction: str
     ):
         alert = await self._alert_service.create(
-            user_id=user_id,
+            telegram_id=telegram_id,
             symbol=symbol,
             price=price,
             direction=direction,
@@ -53,3 +53,12 @@ class MarketDataWorkflow:
             candles=candles,
         )
         return False
+
+    async def get_or_load_candles_for_levels(self, *, symbol: str, timeframe: Timeframe):
+        candles = await self._candle_service.get_for_levels(symbol=symbol, timeframe=timeframe)
+        if candles:
+            return candles
+
+        await self.download_daily_candles(symbol)
+
+        return await self._candle_service.get_for_levels(symbol=symbol, timeframe=timeframe)

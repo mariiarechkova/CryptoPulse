@@ -4,8 +4,8 @@ from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMar
 def main_menu_keyboard() -> ReplyKeyboardMarkup:
     keyboard = ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="📋 Мои алерты"), KeyboardButton(text="🗑 Удалить алерт")],
-            [KeyboardButton(text="➕ Создать алерт")],
+            [KeyboardButton(text="📋 Мои алерты"), KeyboardButton(text="➕ Создать алерт")],
+            [KeyboardButton(text="📐 Рассчитать уровни"), KeyboardButton(text="🗑 Удалить алерт")]
         ],
         resize_keyboard=True,
     )

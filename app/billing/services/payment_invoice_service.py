@@ -35,13 +35,13 @@ class PaymentInvoiceService:
         self._cryptopay = cryptopay
 
     async def create_invoice(self, *, telegram_id: int, tariff_code: TariffCode) -> CreateInvoiceResult:
-        plan = await self._tariff_repo.get_active_by_code(tariff_code.value)
+        plan = await self._tariff_repo.get_by_code(tariff_code.value)
         if not plan:
             raise ValueError("Tariff plan not found or inactive")
 
         user = await self._user_repo.get_by_telegram_id(telegram_id)
         if not user:
-            free_plan = await self._tariff_repo.get_active_by_code(TariffCode.FREE.value)
+            free_plan = await self._tariff_repo.get_by_code(TariffCode.FREE.value)
             if not free_plan:
                 raise ValueError("Free tariff plan not found or inactive")
             user = await self._user_repo.create(telegram_id=telegram_id, tariff_plan_id=free_plan.id)

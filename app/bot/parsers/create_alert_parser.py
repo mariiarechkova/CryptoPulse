@@ -1,4 +1,4 @@
-def parse_create_alert_message(text: str, user_id: int) -> tuple[str, float, str, int]:
+def parse_create_alert_message(text: str) -> tuple[str, float, str]:
     raw = (text or "").strip()
     parts = raw.split()
 
@@ -23,4 +23,4 @@ def parse_create_alert_message(text: str, user_id: int) -> tuple[str, float, str
     if direction not in ("up", "down"):
         raise ValueError("Направление должно быть 'up' или 'down'")
 
-    return symbol, price, direction, user_id
+    return symbol, price, direction
