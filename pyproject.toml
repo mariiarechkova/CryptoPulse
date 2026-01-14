@@ -19,6 +19,7 @@ exclude = [
 
   # файл для регистрации моделей
   "app/db/init_models.py",
+  "app/billing/models/__init__.py",
 ]
 
 [tool.ruff.lint]

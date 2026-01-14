@@ -12,7 +12,7 @@ class AlertMessageBuilder:
         levels_formatter,
         candle_service,
         levels_workflow,
-        llm_service=None
+        llm_service=None,
     ) -> None:
         self._base_fmt = price_hit_formatter
         self._levels_fmt = levels_formatter

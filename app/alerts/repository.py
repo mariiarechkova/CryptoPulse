@@ -9,7 +9,12 @@ class AlertRepository:
         self._session_factory = session_factory
 
     async def create(
-        self, session: AsyncSession, symbol: str, target_price: float, user_id: int, direction: str | None
+        self,
+        session: AsyncSession,
+        symbol: str,
+        target_price: float,
+        user_id: int,
+        direction: str | None,
     ) -> Alert:
         alert = Alert(
             symbol=symbol,
@@ -65,7 +70,9 @@ class AlertRepository:
             await session.commit()
             return result.rowcount > 0
 
-    async def get_active_symbols_in_session(self, session: AsyncSession, telegram_id: int) -> set[str]:
+    async def get_active_symbols_in_session(
+        self, session: AsyncSession, telegram_id: int
+    ) -> set[str]:
         result = await session.execute(
             select(Alert.symbol)
             .where(Alert.user_id == telegram_id, Alert.is_active.is_(True))

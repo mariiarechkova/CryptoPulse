@@ -1,10 +1,10 @@
-from aiogram import Router, F
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from app.alerts.services.levels_manual_service import LevelsDemoLimitError
 from app.alerts.services.levels_text_builder import LevelsBuildError
-from app.bot.keyboards import main_menu_keyboard, buy_subscription_kb
+from app.bot.keyboards import buy_subscription_kb, main_menu_keyboard
 from app.bot.parsers.parse_levels_message import parse_levels_message
 from app.bot.states import LevelsStates
 
@@ -47,7 +47,7 @@ def build_levels_router(levels_manual_service) -> Router:
         except LevelsDemoLimitError:
             await message.answer(
                 "Лимит демо-расчётов уровней исчерпан. Оформи подписку, чтобы считать уровни без ограничений.",
-                reply_markup=buy_subscription_kb()
+                reply_markup=buy_subscription_kb(),
             )
 
         except LevelsBuildError:

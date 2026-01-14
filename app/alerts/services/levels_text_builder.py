@@ -4,8 +4,10 @@ from app.market.models import Timeframe
 
 logger = logging.getLogger(__name__)
 
+
 class LevelsBuildError(Exception):
     pass
+
 
 class LevelsTextBuilder:
     def __init__(
@@ -28,7 +30,6 @@ class LevelsTextBuilder:
         if not candles:
             logger.warning("levels.no_candles symbol=%s", symbol)
             raise LevelsBuildError("NO_CANDLES")
-
 
         last_close = getattr(candles[-1], "close", None)
         if last_close is None:

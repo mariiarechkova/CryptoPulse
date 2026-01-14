@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.alerts.models import Alert
 from app.alerts.repository import AlertRepository
@@ -8,8 +8,10 @@ from app.billing.repositories.user_repository import UserRepository
 
 logger = logging.getLogger(__name__)
 
+
 class ActiveSymbolLimitError(Exception):
     pass
+
 
 class AlertService:
     def __init__(self, alert_repo: AlertRepository, session_factory):
@@ -35,11 +37,8 @@ class AlertService:
                     tariff_plan_id=free_plan.id,
                 )
 
-            now = datetime.now(timezone.utc)
-            is_paid = (
-                    user.paid_until is not None
-                    and user.paid_until > now
-            )
+            now = datetime.now(UTC)
+            is_paid = user.paid_until is not None and user.paid_until > now
 
             if is_paid:
                 plan = await tariff_repo.get_by_id(user.tariff_plan_id)
@@ -49,7 +48,9 @@ class AlertService:
             if plan is None:
                 raise RuntimeError("Tariff plan not found")
 
-            active_symbols = await self._repo.get_active_symbols_in_session(session, user.telegram_id)
+            active_symbols = await self._repo.get_active_symbols_in_session(
+                session, user.telegram_id
+            )
             if symbol not in active_symbols and len(active_symbols) >= plan.max_symbols:
                 raise ActiveSymbolLimitError()
 
@@ -63,7 +64,6 @@ class AlertService:
 
             await session.commit()
             return alert
-
 
     async def deactivate_alert(self, alert_id, user_id) -> tuple[bool, str | None]:
         alert = await self._repo.get_by_id_and_user(alert_id, user_id)

@@ -1,4 +1,3 @@
-
 from openai import AsyncOpenAI
 
 from app.llm.interfaces.llm_client import LLMClient

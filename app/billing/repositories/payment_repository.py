@@ -42,17 +42,15 @@ class PaymentRepository:
         return res.scalar_one_or_none()
 
     async def get_by_invoice_id(self, invoice_id: str) -> Payment | None:
-        res = await self._session.execute(
-            select(Payment).where(Payment.invoice_id == invoice_id)
-        )
+        res = await self._session.execute(select(Payment).where(Payment.invoice_id == invoice_id))
         return res.scalar_one_or_none()
 
     async def mark_paid(
-            self,
-            payment: Payment,
-            *,
-            paid_at: datetime,
-            raw_payload: str | None = None,
+        self,
+        payment: Payment,
+        *,
+        paid_at: datetime,
+        raw_payload: str | None = None,
     ) -> None:
         payment.status = PaymentStatus.PAID
         payment.paid_at = paid_at

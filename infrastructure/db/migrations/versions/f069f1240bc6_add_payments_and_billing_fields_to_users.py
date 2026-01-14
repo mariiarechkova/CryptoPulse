@@ -5,6 +5,7 @@ Revises: 3f620f8bf967
 Create Date: 2026-01-06 12:51:30.001316
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -12,12 +13,10 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = 'f069f1240bc6'
-down_revision: Union[str, Sequence[str], None] = '3f620f8bf967'
+revision: str = "f069f1240bc6"
+down_revision: Union[str, Sequence[str], None] = "3f620f8bf967"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
-
-
 
 
 def upgrade() -> None:
@@ -87,29 +86,24 @@ def upgrade() -> None:
         "payments",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("user_id", sa.Integer(), nullable=False),
-
         sa.Column(
             "provider",
             payment_provider_enum,
             server_default="cryptobot",
             nullable=False,
         ),
-
         sa.Column("invoice_id", sa.String(length=128), nullable=False),
-
         sa.Column(
             "status",
             payment_status_enum,
             server_default="pending",
             nullable=False,
         ),
-
         sa.Column(
             "tariff_code",
             tariff_code_enum,
             nullable=False,
         ),
-
         sa.Column("amount", sa.Numeric(precision=18, scale=8), nullable=False),
         sa.Column("asset", sa.String(length=16), server_default="USDT", nullable=False),
         sa.Column(
@@ -120,7 +114,6 @@ def upgrade() -> None:
         ),
         sa.Column("paid_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("raw_payload", sa.Text(), nullable=True),
-
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )

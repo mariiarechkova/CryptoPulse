@@ -1,7 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.billing.enums import TariffCode
 from app.billing.models.tariff_plan import TariffPlan
 
 

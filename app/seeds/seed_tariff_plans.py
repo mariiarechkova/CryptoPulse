@@ -1,4 +1,5 @@
 import asyncio
+
 from sqlalchemy import select
 
 from app.billing.enums import TariffCode
@@ -16,15 +17,11 @@ async def seed_tariff_plans() -> None:
 
         # 2. FREE
         if TariffCode.FREE.value not in existing_codes:
-            plans_to_create.append(
-                TariffPlan(**TariffPlan.default_free())
-            )
+            plans_to_create.append(TariffPlan(**TariffPlan.default_free()))
 
         # 3. PAID_MONTH
         if TariffCode.PAID_MONTH.value not in existing_codes:
-            plans_to_create.append(
-                TariffPlan(**TariffPlan.default_paid_month())
-            )
+            plans_to_create.append(TariffPlan(**TariffPlan.default_paid_month()))
 
         if not plans_to_create:
             print("Tariff plans already exist, nothing to seed")

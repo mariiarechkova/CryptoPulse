@@ -3,12 +3,12 @@ import contextlib
 import logging
 import os
 
-import infrastructure.db.init_models # noqa: F401
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums.parse_mode import ParseMode
 from dotenv import load_dotenv
 
+import infrastructure.db.init_models  # noqa: F401
 from app.alerts.formatters.levels_text_formatter import LevelsPlainFormatter
 from app.alerts.formatters.price_hit_formatter import PriceHitFormatter
 from app.alerts.repository import AlertRepository

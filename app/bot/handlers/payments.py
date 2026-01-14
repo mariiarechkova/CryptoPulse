@@ -1,4 +1,4 @@
-from aiogram import Router, F
+from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
 from app.billing.enums import TariffCode
@@ -12,7 +12,10 @@ from infrastructure.db.session import async_session_maker
 
 router = Router()
 
-cryptopay = CryptoPayClient(api_token=settings.CRYPTOBOT_API_TOKEN, base_url=settings.CRYPTOBOT_BASE_URL,)
+cryptopay = CryptoPayClient(
+    api_token=settings.CRYPTOBOT_API_TOKEN,
+    base_url=settings.CRYPTOBOT_BASE_URL,
+)
 
 
 @router.callback_query(F.data == "buy_subscription")

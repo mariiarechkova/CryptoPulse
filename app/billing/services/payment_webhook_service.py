@@ -1,10 +1,9 @@
-
 from __future__ import annotations
 
 import json
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from dateutil.relativedelta import relativedelta
@@ -84,12 +83,12 @@ class PaymentWebhookService:
                 user_id=payment.user_id,
             )
 
-        paid_at = datetime.now(timezone.utc)
+        paid_at = datetime.now(UTC)
         raw_payload = json.dumps(update, ensure_ascii=False)
 
         await self._payment_repo.mark_paid(payment, paid_at=paid_at, raw_payload=raw_payload)
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         user = await self._user_repo.get_by_id(payment.user_id)
         if user is not None:
@@ -97,7 +96,9 @@ class PaymentWebhookService:
 
             plan = await self._tariff_repo.get_by_id(payment.tariff_plan_id)
             if plan is None:
-                logger.warning("TariffPlan not found", extra={"tariff_plan_id": payment.tariff_plan_id})
+                logger.warning(
+                    "TariffPlan not found", extra={"tariff_plan_id": payment.tariff_plan_id}
+                )
             else:
                 base = user.paid_until if user.paid_until and user.paid_until > now else now
 

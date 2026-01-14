@@ -34,7 +34,9 @@ class PaymentInvoiceService:
         self._payment_repo = payment_repo
         self._cryptopay = cryptopay
 
-    async def create_invoice(self, *, telegram_id: int, tariff_code: TariffCode) -> CreateInvoiceResult:
+    async def create_invoice(
+        self, *, telegram_id: int, tariff_code: TariffCode
+    ) -> CreateInvoiceResult:
         plan = await self._tariff_repo.get_by_code(tariff_code.value)
         if not plan:
             raise ValueError("Tariff plan not found or inactive")
@@ -44,7 +46,9 @@ class PaymentInvoiceService:
             free_plan = await self._tariff_repo.get_by_code(TariffCode.FREE.value)
             if not free_plan:
                 raise ValueError("Free tariff plan not found or inactive")
-            user = await self._user_repo.create(telegram_id=telegram_id, tariff_plan_id=free_plan.id)
+            user = await self._user_repo.create(
+                telegram_id=telegram_id, tariff_plan_id=free_plan.id
+            )
 
         payment = await self._payment_repo.create_pending(
             user_id=user.id,
@@ -62,8 +66,12 @@ class PaymentInvoiceService:
         )
 
         payment.invoice_id = invoice.invoice_id
-        payment.raw_payload = json.dumps({"pay_url": invoice.pay_url, "invoice": invoice.raw}, ensure_ascii=False)
+        payment.raw_payload = json.dumps(
+            {"pay_url": invoice.pay_url, "invoice": invoice.raw}, ensure_ascii=False
+        )
 
         await self._session.commit()
 
-        return CreateInvoiceResult(payment_id=payment.id, invoice_id=invoice.invoice_id, pay_url=invoice.pay_url)
+        return CreateInvoiceResult(
+            payment_id=payment.id, invoice_id=invoice.invoice_id, pay_url=invoice.pay_url
+        )

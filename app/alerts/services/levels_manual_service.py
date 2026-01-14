@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.billing.repositories.tariff_plan_repository import TariffPlanRepository
 from app.billing.repositories.user_repository import UserRepository
@@ -29,10 +29,7 @@ class LevelsManualService:
                     tariff_plan_id=free_plan.id,
                 )
 
-            is_paid = (
-                    user.paid_until is not None
-                    and user.paid_until > datetime.now(timezone.utc)
-            )
+            is_paid = user.paid_until is not None and user.paid_until > datetime.now(UTC)
 
             if is_paid:
                 return await self._builder.build_for_symbol(symbol=symbol)

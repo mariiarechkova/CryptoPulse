@@ -6,7 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from app.alerts.services.alert_service import ActiveSymbolLimitError
-from app.bot.keyboards import confirm_delete_keyboard, main_menu_keyboard, buy_subscription_kb
+from app.bot.keyboards import buy_subscription_kb, confirm_delete_keyboard, main_menu_keyboard
 from app.bot.parsers.create_alert_parser import parse_create_alert_message
 from app.bot.states import AlertStates
 

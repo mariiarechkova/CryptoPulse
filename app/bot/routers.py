@@ -1,6 +1,6 @@
 from aiogram import Router
 
-from .handlers import start, payments
+from .handlers import payments, start
 from .handlers.levels import build_levels_router
 from .handlers.messages import build_router
 

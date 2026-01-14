@@ -10,6 +10,7 @@ class TariffCode(str, Enum):
 class PaymentProvider(str, Enum):
     CRYPTOBOT = "cryptobot"
 
+
 class PaymentStatus(str, Enum):
     PENDING = "pending"
     PAID = "paid"

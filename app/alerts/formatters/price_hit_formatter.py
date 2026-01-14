@@ -14,7 +14,4 @@ class PriceHitFormatter:
         else:
             verb = "достиг ценового уровня алерта"
 
-        return (
-            f"{symbol} {verb} {target_price:,.2f}\n"
-            f"Текущая цена: {current_price:,.2f}"
-        )
+        return f"{symbol} {verb} {target_price:,.2f}\n" f"Текущая цена: {current_price:,.2f}"

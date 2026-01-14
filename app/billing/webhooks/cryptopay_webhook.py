@@ -3,9 +3,14 @@ import logging
 from typing import Any
 
 from fastapi import FastAPI, Request, Response
-from starlette.status import HTTP_200_OK, HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND, HTTP_401_UNAUTHORIZED
-import app.billing.models  # noqa: F401
+from starlette.status import (
+    HTTP_200_OK,
+    HTTP_400_BAD_REQUEST,
+    HTTP_401_UNAUTHORIZED,
+    HTTP_404_NOT_FOUND,
+)
 
+import app.billing.models  # noqa: F401
 from app.billing.repositories.payment_repository import PaymentRepository
 from app.billing.repositories.tariff_plan_repository import TariffPlanRepository
 from app.billing.repositories.user_repository import UserRepository
@@ -19,6 +24,7 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+
 
 @app.post("/webhooks/cryptopay/{secret}")
 async def cryptopay_webhook(secret: str, request: Request) -> Response:

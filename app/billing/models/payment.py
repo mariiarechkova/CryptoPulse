@@ -1,11 +1,12 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Enum as SAEnum, Numeric, String, Text, ForeignKey, DECIMAL
+from sqlalchemy import DateTime, ForeignKey, Numeric, String, Text
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
-from app.billing.enums import PaymentProvider, PaymentStatus, TariffCode
+from app.billing.enums import PaymentProvider, PaymentStatus
 from infrastructure.db.session import Base
 
 
@@ -14,7 +15,9 @@ class Payment(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
 
     provider: Mapped[PaymentProvider] = mapped_column(
         SAEnum(
