@@ -1,5 +1,6 @@
 import logging
 from datetime import UTC, datetime
+from typing import List
 
 from app.alerts.models import Alert
 from app.alerts.repository import AlertRepository
@@ -20,6 +21,9 @@ class AlertService:
 
     async def get_user_alerts(self, user_id: int):
         return await self._repo.get_all(user_id)
+
+    async def list_active_symbols(self) -> List[str]:
+        return await self._repo.get_active_symbols()
 
     async def create(self, *, telegram_id: int, symbol: str, price: float, direction: str) -> Alert:
         async with self._session_factory() as session:

@@ -8,3 +8,4 @@ class AlertStates(StatesGroup):
 
 class LevelsStates(StatesGroup):
     waiting_for_symbol = State()
+    waiting_for_timeframe = State()

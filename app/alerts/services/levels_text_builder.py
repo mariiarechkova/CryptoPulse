@@ -21,11 +21,8 @@ class LevelsTextBuilder:
         self._levels = levels_workflow
         self._fmt = levels_formatter
 
-    async def build_for_symbol(self, *, symbol: str) -> str:
-        candles = await self._market.get_or_load_candles_for_levels(
-            symbol=symbol,
-            timeframe=Timeframe.D1,
-        )
+    async def build_for_symbol(self, *, symbol: str, timeframe: Timeframe) -> str:
+        candles = await self._market.get_candles_for_levels(symbol=symbol, timeframe=timeframe)
 
         if not candles:
             logger.warning("levels.no_candles symbol=%s", symbol)
@@ -38,13 +35,8 @@ class LevelsTextBuilder:
 
         current_price = float(last_close)
 
-        logger.info(
-            "levels.button_input symbol=%s tf=%s candles=%d last_close=%s",
-            symbol,
-            Timeframe.D1,
-            len(candles),
-            current_price,
-        )
+        logger.info("levels.button_input symbol=%s tf=%s candles=%d last_close=%s",
+                    symbol, timeframe, len(candles), current_price)
 
         levels = self._levels.get_levels_for_price(candles, current_price)
         return self._fmt.format(levels)

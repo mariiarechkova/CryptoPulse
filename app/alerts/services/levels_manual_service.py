@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 from app.billing.repositories.tariff_plan_repository import TariffPlanRepository
 from app.billing.repositories.user_repository import UserRepository
+from app.market.models import Timeframe
 
 
 class LevelsDemoLimitError(Exception):
@@ -13,7 +14,7 @@ class LevelsManualService:
         self._session_factory = session_factory
         self._builder = text_builder  # LevelsTextBuilder
 
-    async def build_text(self, *, telegram_id: int, symbol: str) -> str:
+    async def build_text(self, *, telegram_id: int, symbol: str, timeframe: Timeframe) -> str:
         async with self._session_factory() as session:
             user_repo = UserRepository(session)
             tariff_repo = TariffPlanRepository(session)
@@ -31,17 +32,19 @@ class LevelsManualService:
 
             is_paid = user.paid_until is not None and user.paid_until > datetime.now(UTC)
 
-            if is_paid:
-                return await self._builder.build_for_symbol(symbol=symbol)
-
-            if user.levels_demo_remaining <= 0:
+            if not is_paid and user.levels_demo_remaining <= 0:
                 raise LevelsDemoLimitError()
 
-            text = await self._builder.build_for_symbol(symbol=symbol)
+            text = await self._builder.build_for_symbol(
+                symbol=symbol,
+                timeframe=timeframe,
+            )
 
-            res = await user_repo.try_consume_levels_demo(user.id)
-            if not res:
-                raise LevelsDemoLimitError()
+            if not is_paid:
+                res = await user_repo.try_consume_levels_demo(user.id)
+                if not res:
+                    raise LevelsDemoLimitError()
 
-            await session.commit()
+                await session.commit()
+
             return text

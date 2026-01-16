@@ -1,4 +1,4 @@
-from sqlalchemy import select, update
+from sqlalchemy import select, update, distinct
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.alerts.models import Alert
@@ -79,3 +79,10 @@ class AlertRepository:
             .distinct()
         )
         return {row[0] for row in result.all()}
+
+    async def get_active_symbols(self) -> list[str]:
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(distinct(Alert.symbol)).where(Alert.is_active.is_(True))
+            )
+            return [row[0] for row in result.all()]
