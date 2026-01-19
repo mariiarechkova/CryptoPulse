@@ -1,7 +1,3 @@
-from dataclasses import dataclass
-
-import pytest
-
 from app.market.levels.atr_calculator import ATRCalculator
 
 from dataclasses import dataclass
