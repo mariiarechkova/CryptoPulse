@@ -1,5 +1,5 @@
 import logging
-from datetime import timedelta, datetime, UTC
+from datetime import UTC, datetime, timedelta
 
 from app.market.models import Timeframe
 from app.market.services.candle_service import LEVELS_CANDLE_WINDOWS
@@ -15,8 +15,15 @@ _TF_DELTA = {
 
 TAIL_LIMIT = 50
 
+
 class MarketDataWorkflow:
-    def __init__(self, alert_service, subscription_manager: SubscriptionManager | None, candle_service, bybit_rest_client):
+    def __init__(
+        self,
+        alert_service,
+        subscription_manager: SubscriptionManager | None,
+        candle_service,
+        bybit_rest_client,
+    ):
         self._bybit_rest_client = bybit_rest_client
         self._alert_service = alert_service
         self._subscription_manager = subscription_manager
@@ -64,7 +71,13 @@ class MarketDataWorkflow:
             timeframe=timeframe,
             keep_last=keep_last,
         )
-        logger.info("candles.retention symbol=%s tf=%s deleted=%d keep_last=%d", symbol, timeframe, deleted, keep_last)
+        logger.info(
+            "candles.retention symbol=%s tf=%s deleted=%d keep_last=%d",
+            symbol,
+            timeframe,
+            deleted,
+            keep_last,
+        )
 
         return True
 
@@ -76,13 +89,21 @@ class MarketDataWorkflow:
         tf_delta = _TF_DELTA[timeframe]
         now = datetime.now(UTC)
 
-        has_enough = await self._candle_service.has_at_least(symbol=symbol, timeframe=timeframe, n=limit)
+        has_enough = await self._candle_service.has_at_least(
+            symbol=symbol, timeframe=timeframe, n=limit
+        )
         if not has_enough:
             return await self._fetch_and_save(symbol=symbol, timeframe=timeframe, limit=limit)
 
-        last_open_time = await self._candle_service.get_latest_open_time(symbol=symbol, timeframe=timeframe)
+        last_open_time = await self._candle_service.get_latest_open_time(
+            symbol=symbol, timeframe=timeframe
+        )
         if last_open_time is None:
-            logger.error("Invariant broken: has_at_least=True but no last candle symbol=%s tf=%s", symbol, timeframe)
+            logger.error(
+                "Invariant broken: has_at_least=True but no last candle symbol=%s tf=%s",
+                symbol,
+                timeframe,
+            )
             return await self._fetch_and_save(symbol=symbol, timeframe=timeframe, limit=limit)
 
         gap = now - last_open_time

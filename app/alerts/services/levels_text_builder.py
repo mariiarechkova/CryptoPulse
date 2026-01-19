@@ -35,8 +35,13 @@ class LevelsTextBuilder:
 
         current_price = float(last_close)
 
-        logger.info("levels.button_input symbol=%s tf=%s candles=%d last_close=%s",
-                    symbol, timeframe, len(candles), current_price)
+        logger.info(
+            "levels.button_input symbol=%s tf=%s candles=%d last_close=%s",
+            symbol,
+            timeframe,
+            len(candles),
+            current_price,
+        )
 
-        levels = self._levels.get_levels_for_price(candles, current_price)
+        levels = self._levels.get_levels_for_price(candles, current_price, 3)
         return self._fmt.format(levels)

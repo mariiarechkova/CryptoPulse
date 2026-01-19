@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import time
 
@@ -11,7 +10,7 @@ from app.market.models import Timeframe
 from app.market.repository import CandleRepository
 from app.market.services.candle_service import CandleService
 from app.workflows.market_data_workflow import MarketDataWorkflow
-from cron.locks import try_advisory_lock, advisory_unlock
+from cron.locks import advisory_unlock, try_advisory_lock
 from infrastructure.bybit.rest_client import BybitRestClient
 
 LOCK_KEY = 9001
@@ -62,7 +61,9 @@ async def refresh_candles_tf(
 
                 for symbol in symbols:
                     try:
-                        result = await market_data.ensure_candles(symbol=symbol, timeframe=timeframe)
+                        result = await market_data.ensure_candles(
+                            symbol=symbol, timeframe=timeframe
+                        )
                         if result:
                             success += 1
                         else:

@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 import infrastructure.db.init_models  # noqa: F401
 from app.alerts.formatters.levels_text_formatter import LevelsPlainFormatter
+from app.alerts.formatters.multi_tf_levels_formatter import MultiTFLevelsFormatter
 from app.alerts.formatters.price_hit_formatter import PriceHitFormatter
 from app.alerts.repository import AlertRepository
 from app.alerts.services.alert_message_builder import AlertMessageBuilder
@@ -23,10 +24,12 @@ from app.llm.services.llm_service import LLMService
 from app.market.levels.atr_calculator import ATRCalculator
 from app.market.levels.level_classifier import LevelClassifier
 from app.market.levels.level_clusterer import LevelClusterer
+from app.market.levels.multitf.multi_tf_level_service import MultiTFLevelsService
 from app.market.levels.pivot_detector import PivotDetector
+from app.market.models import Timeframe
 from app.market.repository import CandleRepository
 from app.market.services.candle_service import CandleService
-from app.workflows.levels_workflow import LevelsWorkflow
+from app.workflows.levels_workflow import LevelsWorkflow, LevelsWorkflowConfig
 from app.workflows.market_data_workflow import MarketDataWorkflow
 from infrastructure.bybit.manager import SubscriptionManager
 from infrastructure.bybit.rest_client import BybitRestClient
@@ -65,15 +68,37 @@ async def main():
     level_clusterer = LevelClusterer()
     level_classifier = LevelClassifier()
 
-    levels_workflow = LevelsWorkflow(
+    price_hit_formatter = PriceHitFormatter()
+    levels_formatter = LevelsPlainFormatter()
+
+    common = dict(
         atr_calculator=atr_calculator,
         pivot_detector=pivot_detector,
         level_clusterer=level_clusterer,
         level_classifier=level_classifier,
     )
 
-    price_hit_formatter = PriceHitFormatter()
-    levels_formatter = LevelsPlainFormatter()
+    levels_workflow = LevelsWorkflow(**common)
+
+    workflows_by_tf = {
+        Timeframe.H1: LevelsWorkflow(
+            **common, config=LevelsWorkflowConfig(price_cap_pct=0.005, atr_period=14)
+        ),
+        Timeframe.H4: LevelsWorkflow(
+            **common, config=LevelsWorkflowConfig(price_cap_pct=0.01, atr_period=14)
+        ),
+        Timeframe.D1: LevelsWorkflow(
+            **common, config=LevelsWorkflowConfig(price_cap_pct=0.02, atr_period=14)
+        ),
+    }
+
+    multi_tf_levels_service = MultiTFLevelsService(
+        candle_service=candle_service,
+        workflows_by_tf=workflows_by_tf,
+        atr_calculator=atr_calculator,
+    )
+
+    multi_tf_levels_formatter = MultiTFLevelsFormatter()
 
     llm_client = OpenAIClient(
         api_key=settings.OPENAI_API_KEY,
@@ -84,12 +109,11 @@ async def main():
         enabled=settings.LLM_ENABLED,
         timeout_seconds=settings.LLM_TIMEOUT_SECONDS,
     )
-
+    # --- Alert message builder теперь только MultiTF ---
     alert_message_builder = AlertMessageBuilder(
         price_hit_formatter=price_hit_formatter,
-        levels_formatter=levels_formatter,
-        candle_service=candle_service,
-        levels_workflow=levels_workflow,
+        multi_tf_levels_formatter=multi_tf_levels_formatter,
+        multi_tf_levels_service=multi_tf_levels_service,
         llm_service=llm_service,
     )
 

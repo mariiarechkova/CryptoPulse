@@ -1,4 +1,4 @@
-from sqlalchemy import desc, select, delete
+from sqlalchemy import delete, desc, select
 from sqlalchemy.dialects.postgresql import insert
 
 from app.market.models import Candle, Timeframe
@@ -31,7 +31,6 @@ class CandleRepository:
             )
             rows = (await session.execute(stmt)).scalars().all()
             return len(rows) >= n
-
 
     async def insert_many(self, symbol: str, timeframe: Timeframe, candles: list[dict]) -> None:
         if not candles:
@@ -85,15 +84,14 @@ class CandleRepository:
             )
             return (await session.execute(stmt)).scalar_one_or_none()
 
-    async def delete_older_than(self, *, symbol: str, timeframe: Timeframe, cutoff_open_time) -> int:
+    async def delete_older_than(
+        self, *, symbol: str, timeframe: Timeframe, cutoff_open_time
+    ) -> int:
         async with self._session_factory() as session:
-            stmt = (
-                delete(Candle)
-                .where(
-                    Candle.symbol == symbol,
-                    Candle.timeframe == timeframe,
-                    Candle.open_time < cutoff_open_time,
-                )
+            stmt = delete(Candle).where(
+                Candle.symbol == symbol,
+                Candle.timeframe == timeframe,
+                Candle.open_time < cutoff_open_time,
             )
             res = await session.execute(stmt)
             await session.commit()

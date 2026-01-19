@@ -1,10 +1,10 @@
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import CallbackQuery, Message
 
 from app.alerts.services.levels_manual_service import LevelsDemoLimitError
 from app.alerts.services.levels_text_builder import LevelsBuildError
-from app.bot.keyboards import buy_subscription_kb, main_menu_keyboard, levels_tf_kb
+from app.bot.keyboards import buy_subscription_kb, levels_tf_kb, main_menu_keyboard
 from app.bot.parsers.parse_levels_message import parse_levels_message
 from app.bot.states import LevelsStates
 from app.market.models import Timeframe

@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 STOP_EVENT = asyncio.Event()
 
+
 def _setup_signals() -> None:
     loop = asyncio.get_running_loop()
 

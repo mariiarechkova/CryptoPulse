@@ -1,4 +1,4 @@
-from sqlalchemy import select, update, distinct
+from sqlalchemy import distinct, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.alerts.models import Alert

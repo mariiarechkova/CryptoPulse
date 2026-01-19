@@ -44,9 +44,7 @@ class CandleService:
         )
         return rows[-1].open_time if rows else None
 
-    async def delete_old(
-            self, *, symbol: str, timeframe: Timeframe, keep_last: int
-    ) -> int:
+    async def delete_old(self, *, symbol: str, timeframe: Timeframe, keep_last: int) -> int:
         cutoff = await self._repo.get_cutoff_open_time(
             symbol=symbol.upper(),
             timeframe=timeframe,

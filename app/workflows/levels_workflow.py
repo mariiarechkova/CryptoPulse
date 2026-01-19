@@ -13,11 +13,12 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True, slots=True)
 class LevelsWorkflowConfig:
     atr_mult: float = 0.5
+    atr_period: int = 14
+    price_cap_pct: float = 0.02
     left: int = 2
     right: int = 2
     min_touches: int = 2
-    min_candles_for_atr: int = 14
-    top_n: int = 3
+    top_n: int = 10
 
 
 class LevelsWorkflow:
@@ -35,27 +36,28 @@ class LevelsWorkflow:
         self._classifier = level_classifier
         self._cfg = config or LevelsWorkflowConfig()
 
-    def get_levels_for_price(self, candles: list[Candle], current_price: float) -> dict[str, list]:
+    def get_levels_for_price(
+        self, candles: list[Candle], current_price: float, top_n: int | None = None
+    ) -> dict[str, list]:
         result: dict[str, list] = {"supports": [], "resistances": []}
 
         logger.info("levels: candles=%d", len(candles))
         logger.debug("levels: start candles=%d price=%s", len(candles), current_price)
 
-        if len(candles) < self._cfg.min_candles_for_atr:
+        price_cap = current_price * self._cfg.price_cap_pct
+
+        try:
+            atr = self._atr.calculate(candles, period=self._cfg.atr_period)
+            tolerance = min(atr * self._cfg.atr_mult, price_cap)
+            logger.debug("levels: atr=%s tolerance=%s", atr, tolerance)
+        except ValueError:
+            tolerance = price_cap
             logger.debug(
-                "levels.skip_not_enough_candles candles=%s min=%s",
+                "levels.atr_fallback candles=%s period=%s tolerance=%s",
                 len(candles),
-                self._cfg.min_candles_for_atr,
+                self._cfg.atr_period,
+                tolerance,
             )
-            return result
-
-        atr = self._atr.calculate(candles)
-        tolerance = atr * self._cfg.atr_mult
-        price_cap = current_price * 0.02  # 2% price
-
-        tolerance = min(tolerance, price_cap)
-
-        logger.debug("levels: atr=%s tolerance=%s", atr, tolerance)
 
         pivot_prices = self._pivots.find_pivots(candles, left=self._cfg.left, right=self._cfg.right)
         logger.info("levels: pivots=%d sample=%s", len(pivot_prices), pivot_prices[:5])
@@ -95,7 +97,7 @@ class LevelsWorkflow:
             len(classified["resistances"]),
         )
 
-        n = self._cfg.top_n
+        n = top_n if top_n is not None else self._cfg.top_n
         result["supports"] = classified["supports"][:n]
         result["resistances"] = classified["resistances"][:n]
 

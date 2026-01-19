@@ -34,11 +34,14 @@ def buy_subscription_kb() -> InlineKeyboardMarkup:
         ]
     )
 
+
 def levels_tf_kb(symbol: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="🕐 1H", callback_data=f"levels_tf:{symbol}:H1"),
-            InlineKeyboardButton(text="🕓 4H", callback_data=f"levels_tf:{symbol}:H4"),
-            InlineKeyboardButton(text="📅 1D", callback_data=f"levels_tf:{symbol}:D1"),
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="🕐 1H", callback_data=f"levels_tf:{symbol}:H1"),
+                InlineKeyboardButton(text="🕓 4H", callback_data=f"levels_tf:{symbol}:H4"),
+                InlineKeyboardButton(text="📅 1D", callback_data=f"levels_tf:{symbol}:D1"),
+            ]
         ]
-    ])
+    )
