@@ -2,12 +2,12 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
+from app.alerts.services.levels_callback_service import LevelsCallbackService
 from app.alerts.services.levels_manual_service import LevelsDemoLimitError
 from app.alerts.services.levels_text_builder import LevelsBuildError
-from app.bot.keyboards import buy_subscription_kb, levels_tf_kb, main_menu_keyboard
+from app.bot.keyboards import levels_tf_kb, main_menu_keyboard
 from app.bot.parsers.parse_levels_message import parse_levels_message
 from app.bot.states import LevelsStates
-from app.market.models import Timeframe
 
 MENU_TEXTS = {
     "📋 Мои алерты",
@@ -50,35 +50,25 @@ def build_levels_router(levels_manual_service) -> Router:
     async def handle_levels_timeframe(callback: CallbackQuery, state: FSMContext):
         await callback.answer()
 
-        data = await state.get_data()
-        symbol = data.get("symbol")
+        helper = LevelsCallbackService()
+
+        fsm_data = await state.get_data()
+        symbol = helper.extract_symbol(fsm_data=fsm_data)
         if not symbol:
             await state.clear()
-            await callback.message.answer(
-                "Символ не найден. Попробуй ещё раз.",
-                reply_markup=main_menu_keyboard(),
-            )
+            await helper.reply_symbol_missing(message=callback.message)
             return
 
-        # levels_tf:{symbol}:H1
-        try:
-            _, _, tf_code = callback.data.split(":")
-        except ValueError:
+        tf_code = helper.parse_tf_code(callback_data=callback.data)
+        if tf_code is None:
             await state.clear()
-            await callback.message.answer(
-                "Не удалось прочитать таймфрейм. Попробуй ещё раз.",
-                reply_markup=main_menu_keyboard(),
-            )
+            await helper.reply_bad_timeframe(message=callback.message)
             return
 
-        try:
-            timeframe = Timeframe(tf_code)
-        except ValueError:
+        timeframe = helper.parse_timeframe(tf_code=tf_code)
+        if timeframe is None:
             await state.clear()
-            await callback.message.answer(
-                "Неизвестный таймфрейм. Попробуй ещё раз.",
-                reply_markup=main_menu_keyboard(),
-            )
+            await helper.reply_unknown_timeframe(message=callback.message)
             return
 
         try:
@@ -90,17 +80,10 @@ def build_levels_router(levels_manual_service) -> Router:
             await callback.message.answer(text, reply_markup=main_menu_keyboard())
 
         except LevelsDemoLimitError:
-            await callback.message.answer(
-                "Лимит демо-расчётов уровней исчерпан. Оформи подписку, чтобы считать уровни без ограничений.",
-                reply_markup=buy_subscription_kb(),
-            )
+            await helper.reply_demo_limit(message=callback.message)
 
         except LevelsBuildError:
-            await callback.message.answer(
-                "Не удалось рассчитать уровни 😕\n"
-                "Попробуй другой символ или повтори попытку позже.",
-                reply_markup=main_menu_keyboard(),
-            )
+            await helper.reply_build_error(message=callback.message)
 
         finally:
             await state.clear()

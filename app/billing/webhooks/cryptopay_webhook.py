@@ -1,57 +1,50 @@
-import json
 import logging
-from typing import Any
 
-from fastapi import FastAPI, Request, Response
+from fastapi import APIRouter, Request, Response
 from starlette.status import (
     HTTP_200_OK,
     HTTP_400_BAD_REQUEST,
-    HTTP_401_UNAUTHORIZED,
-    HTTP_404_NOT_FOUND,
 )
 
 import app.billing.models  # noqa: F401
 from app.billing.repositories.payment_repository import PaymentRepository
 from app.billing.repositories.tariff_plan_repository import TariffPlanRepository
 from app.billing.repositories.user_repository import UserRepository
+from app.billing.services.cryptopay_webhook_validator import CryptoPayWebhookValidator
 from app.billing.services.payment_webhook_service import PaymentWebhookService
 from app.config import settings
-from infrastructure.cryptobot.signature import verify_cryptopay_signature
 from infrastructure.db.session import async_session_maker
 from infrastructure.logging_config import setup_logging
 
 setup_logging()
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
+router = APIRouter()
 
 
-@app.post("/webhooks/cryptopay/{secret}")
+@router.post("/webhooks/cryptopay/{secret}")
 async def cryptopay_webhook(secret: str, request: Request) -> Response:
-    if secret != settings.CRYPTOPAY_WEBHOOK_SECRET_PATH:
-        return Response(status_code=HTTP_404_NOT_FOUND)
+    validator = CryptoPayWebhookValidator(
+        expected_secret=settings.CRYPTOPAY_WEBHOOK_SECRET_PATH,
+        verify_signature=settings.CRYPTOPAY_WEBHOOK_VERIFY_SIGNATURE,
+        api_token=settings.CRYPTOBOT_API_TOKEN,
+    )
 
-    raw = await request.body()
+    secret_status = validator.validate_secret(secret=secret)
+    if secret_status is not None:
+        return Response(status_code=secret_status)
 
-    signature = request.headers.get("crypto-pay-api-signature")
-    if settings.CRYPTOPAY_WEBHOOK_VERIFY_SIGNATURE:
-        if not signature:
-            logger.warning("CryptoPay webhook: missing signature")
-            return Response(status_code=HTTP_401_UNAUTHORIZED)
+    raw_body = await request.body()
 
-        ok = verify_cryptopay_signature(
-            api_token=settings.CRYPTOBOT_API_TOKEN,
-            raw_body=raw,
-            signature_hex=signature,
-        )
-        if not ok:
-            logger.warning("CryptoPay webhook: bad signature")
-            return Response(status_code=HTTP_401_UNAUTHORIZED)
+    signature_status = validator.validate_signature(
+        raw_body=raw_body,
+        signature=request.headers.get("crypto-pay-api-signature"),
+    )
+    if signature_status is not None:
+        return Response(status_code=signature_status)
 
-    try:
-        update: dict[str, Any] = json.loads(raw.decode("utf-8"))
-    except Exception:
-        logger.warning("CryptoPay webhook: invalid json")
+    update = validator.parse_update(raw_body=raw_body)
+    if update is None:
         return Response(status_code=HTTP_400_BAD_REQUEST)
 
     async with async_session_maker() as session:

@@ -41,34 +41,23 @@ class PaymentWebhookService:
 
     async def handle_update(self, *, update: dict[str, Any]) -> WebhookHandleResult:
         update_type = update.get("update_type")
-
         logger.info("CryptoPay webhook received", extra={"update_type": update_type})
 
         if update_type != "invoice_paid":
             return WebhookHandleResult(action="ignored")
 
-        payload = update.get("payload")
-        if not isinstance(payload, dict):
-            logger.warning("CryptoPay webhook: payload is not a dict")
+        payload = self._extract_payload(update)
+        if payload is None:
             return WebhookHandleResult(action="bad_payload")
 
-        invoice = payload.get("invoice")
-        if isinstance(invoice, dict) and invoice.get("invoice_id") is not None:
-            invoice_id = str(invoice["invoice_id"])
-        else:
-            invoice_id_raw = payload.get("invoice_id")
-            invoice_id = str(invoice_id_raw) if invoice_id_raw is not None else None
-
+        invoice_id = self._extract_invoice_id(payload)
         if invoice_id is None:
             logger.warning("CryptoPay webhook without invoice_id")
             return WebhookHandleResult(action="bad_payload")
 
         payment = await self._payment_repo.get_by_invoice_id(invoice_id)
         if payment is None:
-            logger.warning(
-                "CryptoPay invoice not found",
-                extra={"invoice_id": invoice_id},
-            )
+            logger.warning("CryptoPay invoice not found", extra={"invoice_id": invoice_id})
             return WebhookHandleResult(action="not_found", invoice_id=invoice_id)
 
         if payment.status == PaymentStatus.PAID:
@@ -88,28 +77,7 @@ class PaymentWebhookService:
 
         await self._payment_repo.mark_paid(payment, paid_at=paid_at, raw_payload=raw_payload)
 
-        now = datetime.now(UTC)
-
-        user = await self._user_repo.get_by_id(payment.user_id)
-        if user is not None:
-            user.tariff_plan_id = payment.tariff_plan_id
-
-            plan = await self._tariff_repo.get_by_id(payment.tariff_plan_id)
-            if plan is None:
-                logger.warning(
-                    "TariffPlan not found", extra={"tariff_plan_id": payment.tariff_plan_id}
-                )
-            else:
-                base = user.paid_until if user.paid_until and user.paid_until > now else now
-
-                if plan.code == "paid_month":
-                    user.paid_until = base + relativedelta(months=1)
-                elif plan.code == "paid_year":
-                    user.paid_until = base + relativedelta(years=1)
-                else:
-                    user.paid_until = base + relativedelta(months=1)
-
-            await self._session.flush()
+        await self._apply_payment_to_user(payment=payment)
 
         await self._session.commit()
 
@@ -129,3 +97,48 @@ class PaymentWebhookService:
             payment_id=payment.id,
             user_id=payment.user_id,
         )
+
+    def _extract_payload(self, update: dict[str, Any]) -> dict[str, Any] | None:
+        payload = update.get("payload")
+        if not isinstance(payload, dict):
+            logger.warning("CryptoPay webhook: payload is not a dict")
+            return None
+        return payload
+
+    def _extract_invoice_id(self, payload: dict[str, Any]) -> str | None:
+        invoice = payload.get("invoice")
+
+        if isinstance(invoice, dict):
+            inv_id = invoice.get("invoice_id")
+            if inv_id is not None:
+                return str(inv_id)
+
+        inv_id_raw = payload.get("invoice_id")
+        return str(inv_id_raw) if inv_id_raw is not None else None
+
+    async def _apply_payment_to_user(self, *, payment) -> None:
+        user = await self._user_repo.get_by_id(payment.user_id)
+        if user is None:
+            return
+
+        user.tariff_plan_id = payment.tariff_plan_id
+
+        plan = await self._tariff_repo.get_by_id(payment.tariff_plan_id)
+        if plan is None:
+            logger.warning("TariffPlan not found", extra={"tariff_plan_id": payment.tariff_plan_id})
+            await self._session.flush()
+            return
+
+        now = datetime.now(UTC)
+        base = user.paid_until if user.paid_until and user.paid_until > now else now
+
+        user.paid_until = self._calc_paid_until(base=base, plan_code=plan.code)
+
+        await self._session.flush()
+
+    def _calc_paid_until(self, *, base: datetime, plan_code: str) -> datetime:
+        if plan_code == "paid_month":
+            return base + relativedelta(months=1)
+        if plan_code == "paid_year":
+            return base + relativedelta(years=1)
+        return base + relativedelta(months=1)
