@@ -14,3 +14,7 @@ pytest~=9.0.2
 openai~=2.14.0
 ruff
 black
+apscheduler
+fastapi
+uvicorn[standard]
+python-dateutil
