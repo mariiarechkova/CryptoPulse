@@ -13,7 +13,7 @@ DATABASE_URL = os.getenv("ASYNC_DATABASE_URL")
 engine = create_async_engine(DATABASE_URL)
 
 # 2. Session Factory
-async_session_maker = async_sessionmaker(engine, class_=AsyncSession)
+async_session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
 # 3. The base class of models

@@ -2,6 +2,16 @@
 line-length = 100
 target-version = ["py311"]
 
+exclude = '''
+(
+  /alembic/
+| /migrations/
+| /infrastructure/db/migrations/
+| /\.venv/
+| /venv/
+)
+'''
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"
@@ -19,6 +29,7 @@ exclude = [
 
   # файл для регистрации моделей
   "app/db/init_models.py",
+  "app/billing/models/__init__.py",
 ]
 
 [tool.ruff.lint]

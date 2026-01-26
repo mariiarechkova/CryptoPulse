@@ -1,15 +1,9 @@
-import enum
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, Enum, String, func
+from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from infrastructure.db.session import Base
-
-
-class SubscriptionPlan(str, enum.Enum):
-    FREE = "free"
-    PREMIUM = "premium"
 
 
 class User(Base):
@@ -22,15 +16,21 @@ class User(Base):
         nullable=False,
         server_default="ru",
     )
-    is_subscription_active: Mapped[bool] = mapped_column(nullable=False, server_default="false")
-    current_plan: Mapped[SubscriptionPlan] = mapped_column(
-        Enum(SubscriptionPlan, name="subscription_plan"),
+    paid_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    tariff_plan_id: Mapped[int] = mapped_column(
+        ForeignKey("tariff_plans.id", ondelete="RESTRICT"),
         nullable=False,
-        server_default=SubscriptionPlan.FREE.value,
+        index=True,
     )
+
+    levels_demo_remaining: Mapped[int] = mapped_column(Integer, nullable=False, server_default="3")
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
     )
 
     coins = relationship("UserCoin", back_populates="user")
+    payments = relationship("Payment", back_populates="user")
+    tariff_plan = relationship("TariffPlan")

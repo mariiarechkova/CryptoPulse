@@ -35,7 +35,8 @@ desktop.ini
 
 # Environments & dotenv
 .env
-.env.*
+.env.local
+.env.prod
 
 # MyPy
 .mypy_cache/

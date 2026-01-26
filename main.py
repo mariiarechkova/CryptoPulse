@@ -3,17 +3,21 @@ import contextlib
 import logging
 import os
 
-import infrastructure.db.init_models # noqa: F401
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums.parse_mode import ParseMode
 from dotenv import load_dotenv
 
+import infrastructure.db.init_models  # noqa: F401
+from app.alerts.formatters.h1_levels_formatter import H1LevelsFormatter
 from app.alerts.formatters.levels_text_formatter import LevelsPlainFormatter
 from app.alerts.formatters.price_hit_formatter import PriceHitFormatter
 from app.alerts.repository import AlertRepository
 from app.alerts.services.alert_message_builder import AlertMessageBuilder
 from app.alerts.services.alert_service import AlertService
+from app.alerts.services.h1_levels_service import H1LevelsService
+from app.alerts.services.levels_manual_service import LevelsManualService
+from app.alerts.services.levels_text_builder import LevelsTextBuilder
 from app.alerts.services.price_update_service import PriceUpdateService
 from app.bot.routers import setup_router
 from app.config import settings
@@ -22,15 +26,16 @@ from app.market.levels.atr_calculator import ATRCalculator
 from app.market.levels.level_classifier import LevelClassifier
 from app.market.levels.level_clusterer import LevelClusterer
 from app.market.levels.pivot_detector import PivotDetector
+from app.market.models import Timeframe
 from app.market.repository import CandleRepository
 from app.market.services.candle_service import CandleService
-from app.workflows.levels_workflow import LevelsWorkflow
+from app.workflows.levels_workflow import LevelsWorkflow, LevelsWorkflowConfig
 from app.workflows.market_data_workflow import MarketDataWorkflow
 from infrastructure.bybit.manager import SubscriptionManager
 from infrastructure.bybit.rest_client import BybitRestClient
 from infrastructure.bybit.websocket_client import BybitWebSocketClient
 from infrastructure.db.session import async_session_maker
-from infrastructure.llm.openai_client import OpenAIClient
+from infrastructure.llm.yandex_ai_client import YandexLLMClient
 from infrastructure.logging_config import setup_logging
 
 setup_logging()
@@ -51,43 +56,80 @@ async def main():
     subscription_manager = SubscriptionManager(ws_client)
 
     alert_repo = AlertRepository(async_session_maker)
-    alert_service = AlertService(alert_repo=alert_repo)
+    alert_service = AlertService(alert_repo=alert_repo, session_factory=async_session_maker)
 
     candle_repo = CandleRepository(async_session_maker)
     candle_service = CandleService(candle_repo=candle_repo)
-
-    # Levels stack + formatters
 
     atr_calculator = ATRCalculator()
     pivot_detector = PivotDetector()
     level_clusterer = LevelClusterer()
     level_classifier = LevelClassifier()
 
-    levels_workflow = LevelsWorkflow(
+    price_hit_formatter = PriceHitFormatter()
+    levels_formatter = LevelsPlainFormatter()
+    h1_levels_formatter = H1LevelsFormatter()
+
+    common = dict(
         atr_calculator=atr_calculator,
         pivot_detector=pivot_detector,
         level_clusterer=level_clusterer,
         level_classifier=level_classifier,
     )
 
-    price_hit_formatter = PriceHitFormatter()
-    levels_formatter = LevelsPlainFormatter()
+    workflows_by_tf = {
+        Timeframe.H1: LevelsWorkflow(
+            **common, config=LevelsWorkflowConfig(price_cap_pct=0.01, atr_period=14)
+        ),
+        Timeframe.H4: LevelsWorkflow(
+            **common, config=LevelsWorkflowConfig(price_cap_pct=0.015, atr_period=14)
+        ),
+        Timeframe.D1: LevelsWorkflow(
+            **common, config=LevelsWorkflowConfig(price_cap_pct=0.02, atr_period=14)
+        ),
+    }
 
-    llm_client = OpenAIClient(
-        api_key=settings.OPENAI_API_KEY,
-        model=settings.OPENAI_MODEL,
+    llm_client = YandexLLMClient(
+        api_key=settings.YANDEX_API_KEY,
+        model_uri=settings.YANDEX_MODEL_URI,
+        timeout_seconds=settings.YANDEX_TIMEOUT_SECONDS,
+        retries=settings.YANDEX_RETRIES,
     )
+
     llm_service = LLMService(
         llm_client,
         enabled=settings.LLM_ENABLED,
         timeout_seconds=settings.LLM_TIMEOUT_SECONDS,
     )
 
+    market_data_workflow = MarketDataWorkflow(
+        bybit_rest_client=rest_client,
+        alert_service=alert_service,
+        subscription_manager=subscription_manager,
+        candle_service=candle_service,
+    )
+    levels_text_builder = LevelsTextBuilder(
+        market_data_workflow=market_data_workflow,
+        workflows_by_tf=workflows_by_tf,
+        levels_formatter=levels_formatter,
+    )
+
+    levels_manual_service = LevelsManualService(
+        session_factory=async_session_maker,
+        text_builder=levels_text_builder,
+    )
+
+    h1_levels_workflow = workflows_by_tf[Timeframe.H1]
+
+    h1_levels_service = H1LevelsService(
+        market_data_workflow=market_data_workflow,
+        levels_workflow=h1_levels_workflow,
+    )
+
     alert_message_builder = AlertMessageBuilder(
         price_hit_formatter=price_hit_formatter,
-        levels_formatter=levels_formatter,
-        candle_service=candle_service,
-        levels_workflow=levels_workflow,
+        h1_levels_formatter=h1_levels_formatter,
+        h1_levels_service=h1_levels_service,
         llm_service=llm_service,
     )
 
@@ -98,14 +140,7 @@ async def main():
         alert_message_builder=alert_message_builder,
     )
 
-    market_data_workflow = MarketDataWorkflow(
-        bybit_rest_client=rest_client,
-        alert_service=alert_service,
-        subscription_manager=subscription_manager,
-        candle_service=candle_service,
-    )
-
-    dp.include_router(setup_router(alert_service, market_data_workflow))
+    dp.include_router(setup_router(alert_service, market_data_workflow, levels_manual_service))
 
     logger.info("Bot and WS are starting...")
 

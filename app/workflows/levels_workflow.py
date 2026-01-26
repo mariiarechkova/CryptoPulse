@@ -13,11 +13,13 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True, slots=True)
 class LevelsWorkflowConfig:
     atr_mult: float = 0.5
-    left: int = 2
-    right: int = 2
+    atr_period: int = 14
+    price_cap_pct: float = 0.02
+    tolerance_floor_pct: float = 0.006
+    left: int = 3
+    right: int = 3
     min_touches: int = 2
-    min_candles_for_atr: int = 14
-    top_n: int = 3
+    top_n: int = 10
 
 
 class LevelsWorkflow:
@@ -35,27 +37,36 @@ class LevelsWorkflow:
         self._classifier = level_classifier
         self._cfg = config or LevelsWorkflowConfig()
 
-    def get_levels_for_price(self, candles: list[Candle], current_price: float) -> dict[str, list]:
+    def get_levels_for_price(
+        self, candles: list[Candle], current_price: float, top_n: int | None = None
+    ) -> dict[str, list]:
         result: dict[str, list] = {"supports": [], "resistances": []}
 
         logger.info("levels: candles=%d", len(candles))
         logger.debug("levels: start candles=%d price=%s", len(candles), current_price)
 
-        if len(candles) < self._cfg.min_candles_for_atr:
-            logger.debug(
-                "levels.skip_not_enough_candles candles=%s min=%s",
-                len(candles),
-                self._cfg.min_candles_for_atr,
-            )
-            return result
+        price_cap = current_price * self._cfg.price_cap_pct
+        floor = current_price * self._cfg.tolerance_floor_pct
 
-        atr = self._atr.calculate(candles)
-        tolerance = atr * self._cfg.atr_mult
-        price_cap = current_price * 0.02  # 2% price
+        try:
+            atr = self._atr.calculate(candles, period=self._cfg.atr_period)
+            raw = atr * self._cfg.atr_mult
+        except ValueError:
+            raw = price_cap
 
-        tolerance = min(tolerance, price_cap)
+        tolerance = max(floor, min(raw, price_cap))
 
-        logger.debug("levels: atr=%s tolerance=%s", atr, tolerance)
+        logger.info(
+            "levels: tolerance=%.4f (%.3f%%), raw=%.4f (%.3f%%), floor=%.4f (%.3f%%), cap=%.4f (%.3f%%)",
+            tolerance,
+            (tolerance / current_price) * 100,
+            raw,
+            (raw / current_price) * 100,
+            floor,
+            (floor / current_price) * 100,
+            price_cap,
+            (price_cap / current_price) * 100,
+        )
 
         pivot_prices = self._pivots.find_pivots(candles, left=self._cfg.left, right=self._cfg.right)
         logger.info("levels: pivots=%d sample=%s", len(pivot_prices), pivot_prices[:5])
@@ -95,7 +106,7 @@ class LevelsWorkflow:
             len(classified["resistances"]),
         )
 
-        n = self._cfg.top_n
+        n = top_n if top_n is not None else self._cfg.top_n
         result["supports"] = classified["supports"][:n]
         result["resistances"] = classified["resistances"][:n]
 

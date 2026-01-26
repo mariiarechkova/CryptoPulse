@@ -11,6 +11,27 @@ services:
     volumes:
       - data-postgres:/var/lib/postgresql/data
 
+#  cron:
+#    build: .
+#    command: python -m cron.runner
+#    env_file:
+#      - .env
+#    restart: unless-stopped
+#    depends_on:
+#      - postgres
+#
+#  api:
+#    build: .
+#    command: uvicorn app.api.main:app --host 0.0.0.0 --port 8000
+#    env_file:
+#      - .env
+#    ports:
+#      - "8000:8000"
+#    restart: unless-stopped
+#    depends_on:
+#      - postgres
+#
+#
 #  cryptopulse:
 #    build: .
 ##    image: cryptopulse:latest
@@ -20,6 +41,7 @@ services:
 #    restart: unless-stopped
 #    depends_on:
 #      - postgres
+
 
 volumes:
   data-postgres:

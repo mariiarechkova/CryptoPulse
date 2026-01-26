@@ -1,12 +1,9 @@
-import asyncio
-
 from aiogram import F, Router
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from app.bot.keyboards import confirm_delete_keyboard, main_menu_keyboard
-from app.bot.parsers.create_alert_parser import parse_create_alert_message
 from app.bot.states import AlertStates
 
 
@@ -22,18 +19,15 @@ def build_router(create_alert_service, market_data_workflow) -> Router:
             await message.answer("У тебя пока нет активных алертов.")
             return
 
-        lines = [
-            f"{idx}. {a.created_at:%H:%M} — {a.symbol} price {a.target_price} {a.direction}"
-            for idx, a in enumerate(alerts, start=1)
-        ]
+        lines = []
+        for idx, a in enumerate(alerts, start=1):
+            dt = a.created_at.strftime("%d.%m %H:%M")
+            direction = "выше" if a.direction == "up" else "ниже"
+
+            lines.append(f"{idx}. {dt} — {a.symbol} {direction} {a.target_price}")
 
         text = "Твои активные алерты:\n\n" + "\n".join(lines)
         await message.answer(text)
-
-    @router.message(F.text == "➕ Создать алерт")
-    async def create_alert_help(message: Message, state: FSMContext):
-        await state.clear()
-        await message.answer("Укажи характеристики алерта, например: \n" "BTCUSDT 105000 up/down")
 
     @router.message(F.text == "🗑 Удалить алерт")
     async def ask_which_alert_to_delete(message: Message, state: FSMContext):
@@ -43,10 +37,10 @@ def build_router(create_alert_service, market_data_workflow) -> Router:
             return
 
         lines = [
-            f"{idx}. {a.created_at:%H:%M} — {a.symbol} price {a.target_price} {a.direction}"
+            f"{idx}. {a.created_at:%d.%m %H:%M} — {a.symbol} "
+            f"{'выше' if a.direction == 'up' else 'ниже'} {a.target_price}"
             for idx, a in enumerate(alerts, start=1)
         ]
-
         alerts_data = [
             {
                 "id": a.id,
@@ -134,26 +128,10 @@ def build_router(create_alert_service, market_data_workflow) -> Router:
                 )
 
     @router.message(StateFilter(None), F.text)
-    async def handle_alert_message(message: Message):
-        try:
-            symbol, price, direction, user_id = parse_create_alert_message(
-                message.text,
-                message.from_user.id,
-            )
-
-            alert = await market_data_workflow.create_alert_and_subscribe(
-                user_id=user_id,
-                symbol=symbol,
-                price=price,
-                direction=direction,
-            )
-
-            await message.answer(
-                f"Алерт сохранён: {alert.symbol} {alert.target_price} {alert.direction}"
-            )
-
-            asyncio.create_task(market_data_workflow.download_daily_candles(alert.symbol))
-        except ValueError as e:
-            await message.answer(str(e))
+    async def fallback_message(message: Message):
+        await message.answer(
+            "Я пока не понимаю такие сообщения 🙂\n" "Выбери действие с помощью кнопок ниже 👇",
+            reply_markup=main_menu_keyboard(),
+        )
 
     return router
