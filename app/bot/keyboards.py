@@ -45,3 +45,14 @@ def levels_tf_kb(symbol: str) -> InlineKeyboardMarkup:
             ]
         ]
     )
+
+
+def direction_kb() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="⬆️ Вверх", callback_data="alert_dir:up"),
+                InlineKeyboardButton(text="⬇️ Вниз", callback_data="alert_dir:down"),
+            ]
+        ]
+    )

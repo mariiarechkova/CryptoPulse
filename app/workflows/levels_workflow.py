@@ -15,8 +15,9 @@ class LevelsWorkflowConfig:
     atr_mult: float = 0.5
     atr_period: int = 14
     price_cap_pct: float = 0.02
-    left: int = 2
-    right: int = 2
+    tolerance_floor_pct: float = 0.006
+    left: int = 3
+    right: int = 3
     min_touches: int = 2
     top_n: int = 10
 
@@ -45,19 +46,27 @@ class LevelsWorkflow:
         logger.debug("levels: start candles=%d price=%s", len(candles), current_price)
 
         price_cap = current_price * self._cfg.price_cap_pct
+        floor = current_price * self._cfg.tolerance_floor_pct
 
         try:
             atr = self._atr.calculate(candles, period=self._cfg.atr_period)
-            tolerance = min(atr * self._cfg.atr_mult, price_cap)
-            logger.debug("levels: atr=%s tolerance=%s", atr, tolerance)
+            raw = atr * self._cfg.atr_mult
         except ValueError:
-            tolerance = price_cap
-            logger.debug(
-                "levels.atr_fallback candles=%s period=%s tolerance=%s",
-                len(candles),
-                self._cfg.atr_period,
-                tolerance,
-            )
+            raw = price_cap
+
+        tolerance = max(floor, min(raw, price_cap))
+
+        logger.info(
+            "levels: tolerance=%.4f (%.3f%%), raw=%.4f (%.3f%%), floor=%.4f (%.3f%%), cap=%.4f (%.3f%%)",
+            tolerance,
+            (tolerance / current_price) * 100,
+            raw,
+            (raw / current_price) * 100,
+            floor,
+            (floor / current_price) * 100,
+            price_cap,
+            (price_cap / current_price) * 100,
+        )
 
         pivot_prices = self._pivots.find_pivots(candles, left=self._cfg.left, right=self._cfg.right)
         logger.info("levels: pivots=%d sample=%s", len(pivot_prices), pivot_prices[:5])

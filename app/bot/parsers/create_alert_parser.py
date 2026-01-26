@@ -1,26 +1,32 @@
-def parse_create_alert_message(text: str) -> tuple[str, float, str]:
-    raw = (text or "").strip()
-    parts = raw.split()
+import re
 
-    if len(parts) != 3:
-        raise ValueError("Неверный формат. Используй, например: BTCUSDT 105000 up/down")
+_SYMBOL_RE = re.compile(r"^[A-Z0-9]{5,}$")
 
-    symbol_raw, price_raw, direction_raw = parts
 
-    symbol = symbol_raw.upper()
-    direction = direction_raw.lower()
+def parse_symbol(text: str | None) -> str:
+    raw = (text or "").strip().upper()
+    if not _SYMBOL_RE.match(raw):
+        raise ValueError("Некорректный тикер. Пример: BTCUSDT")
+    return raw
 
-    if len(symbol) < 5 or not symbol.isalnum():
-        raise ValueError("Некорректный тикер (например: BTCUSDT).")
 
+def parse_price(text: str | None) -> float:
+    raw = (text or "").strip().replace(" ", "").replace(",", ".")
     try:
-        price = float(price_raw)
-        if price <= 0:
-            raise ValueError
+        price = float(raw)
     except ValueError as err:
-        raise ValueError("Цена должна быть положительным числом.") from err
+        raise ValueError("Цена должна быть числом. Пример: 89500 или 2950.5") from err
 
+    if price <= 0:
+        raise ValueError("Цена должна быть больше 0.")
+    return price
+
+
+def parse_direction_cb(callback_data: str | None) -> str:
+    raw = (callback_data or "").strip()
+    if not raw.startswith("alert_dir:"):
+        raise ValueError("Некорректная кнопка направления.")
+    direction = raw.split(":", 1)[1]
     if direction not in ("up", "down"):
-        raise ValueError("Направление должно быть 'up' или 'down'")
-
-    return symbol, price, direction
+        raise ValueError("Некорректное направление.")
+    return direction

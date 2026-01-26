@@ -1,6 +1,7 @@
 import logging
 
 from app.market.models import Timeframe
+from app.workflows.levels_workflow import LevelsWorkflow
 
 logger = logging.getLogger(__name__)
 
@@ -14,11 +15,11 @@ class LevelsTextBuilder:
         self,
         *,
         market_data_workflow,
-        levels_workflow,
+        workflows_by_tf: dict[Timeframe, LevelsWorkflow],
         levels_formatter,
     ) -> None:
         self._market = market_data_workflow
-        self._levels = levels_workflow
+        self._wf_by_tf = workflows_by_tf
         self._fmt = levels_formatter
 
     async def build_for_symbol(self, *, symbol: str, timeframe: Timeframe) -> str:
@@ -43,5 +44,9 @@ class LevelsTextBuilder:
             current_price,
         )
 
-        levels = self._levels.get_levels_for_price(candles, current_price, 3)
-        return self._fmt.format(levels)
+        wf = self._wf_by_tf.get(timeframe)
+        if wf is None:
+            raise LevelsBuildError("UNSUPPORTED_TIMEFRAME")
+
+        levels = wf.get_levels_for_price(candles, current_price, 3)
+        return self._fmt.format(symbol, timeframe.value, levels)

@@ -7,21 +7,28 @@ class LevelClusterer:
 
         prices = sorted(pivot_prices)
 
-        clusters = []
-        current = [prices[0]]
+        clusters: list[list[float]] = []
+        current: list[float] = [prices[0]]
+        current_sum = prices[0]
 
         for price in prices[1:]:
-            if abs(price - current[-1]) <= tolerance:
+            center = current_sum / len(current)
+
+            if abs(price - center) <= tolerance:
                 current.append(price)
+                current_sum += price
             else:
                 clusters.append(current)
                 current = [price]
+                current_sum = price
+
         clusters.append(current)
 
         levels = []
         for cluster in clusters:
             if len(cluster) < min_touches:
                 continue
+
             levels.append(
                 {
                     "min_price": min(cluster),

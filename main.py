@@ -9,12 +9,13 @@ from aiogram.enums.parse_mode import ParseMode
 from dotenv import load_dotenv
 
 import infrastructure.db.init_models  # noqa: F401
+from app.alerts.formatters.h1_levels_formatter import H1LevelsFormatter
 from app.alerts.formatters.levels_text_formatter import LevelsPlainFormatter
-from app.alerts.formatters.multi_tf_levels_formatter import MultiTFLevelsFormatter
 from app.alerts.formatters.price_hit_formatter import PriceHitFormatter
 from app.alerts.repository import AlertRepository
 from app.alerts.services.alert_message_builder import AlertMessageBuilder
 from app.alerts.services.alert_service import AlertService
+from app.alerts.services.h1_levels_service import H1LevelsService
 from app.alerts.services.levels_manual_service import LevelsManualService
 from app.alerts.services.levels_text_builder import LevelsTextBuilder
 from app.alerts.services.price_update_service import PriceUpdateService
@@ -24,7 +25,6 @@ from app.llm.services.llm_service import LLMService
 from app.market.levels.atr_calculator import ATRCalculator
 from app.market.levels.level_classifier import LevelClassifier
 from app.market.levels.level_clusterer import LevelClusterer
-from app.market.levels.multitf.multi_tf_level_service import MultiTFLevelsService
 from app.market.levels.pivot_detector import PivotDetector
 from app.market.models import Timeframe
 from app.market.repository import CandleRepository
@@ -35,7 +35,7 @@ from infrastructure.bybit.manager import SubscriptionManager
 from infrastructure.bybit.rest_client import BybitRestClient
 from infrastructure.bybit.websocket_client import BybitWebSocketClient
 from infrastructure.db.session import async_session_maker
-from infrastructure.llm.openai_client import OpenAIClient
+from infrastructure.llm.yandex_ai_client import YandexLLMClient
 from infrastructure.logging_config import setup_logging
 
 setup_logging()
@@ -61,8 +61,6 @@ async def main():
     candle_repo = CandleRepository(async_session_maker)
     candle_service = CandleService(candle_repo=candle_repo)
 
-    # Levels stack + formatters
-
     atr_calculator = ATRCalculator()
     pivot_detector = PivotDetector()
     level_clusterer = LevelClusterer()
@@ -70,6 +68,7 @@ async def main():
 
     price_hit_formatter = PriceHitFormatter()
     levels_formatter = LevelsPlainFormatter()
+    h1_levels_formatter = H1LevelsFormatter()
 
     common = dict(
         atr_calculator=atr_calculator,
@@ -78,50 +77,29 @@ async def main():
         level_classifier=level_classifier,
     )
 
-    levels_workflow = LevelsWorkflow(**common)
-
     workflows_by_tf = {
         Timeframe.H1: LevelsWorkflow(
-            **common, config=LevelsWorkflowConfig(price_cap_pct=0.005, atr_period=14)
+            **common, config=LevelsWorkflowConfig(price_cap_pct=0.01, atr_period=14)
         ),
         Timeframe.H4: LevelsWorkflow(
-            **common, config=LevelsWorkflowConfig(price_cap_pct=0.01, atr_period=14)
+            **common, config=LevelsWorkflowConfig(price_cap_pct=0.015, atr_period=14)
         ),
         Timeframe.D1: LevelsWorkflow(
             **common, config=LevelsWorkflowConfig(price_cap_pct=0.02, atr_period=14)
         ),
     }
 
-    multi_tf_levels_service = MultiTFLevelsService(
-        candle_service=candle_service,
-        workflows_by_tf=workflows_by_tf,
-        atr_calculator=atr_calculator,
+    llm_client = YandexLLMClient(
+        api_key=settings.YANDEX_API_KEY,
+        model_uri=settings.YANDEX_MODEL_URI,
+        timeout_seconds=settings.YANDEX_TIMEOUT_SECONDS,
+        retries=settings.YANDEX_RETRIES,
     )
 
-    multi_tf_levels_formatter = MultiTFLevelsFormatter()
-
-    llm_client = OpenAIClient(
-        api_key=settings.OPENAI_API_KEY,
-        model=settings.OPENAI_MODEL,
-    )
     llm_service = LLMService(
         llm_client,
         enabled=settings.LLM_ENABLED,
         timeout_seconds=settings.LLM_TIMEOUT_SECONDS,
-    )
-    # --- Alert message builder теперь только MultiTF ---
-    alert_message_builder = AlertMessageBuilder(
-        price_hit_formatter=price_hit_formatter,
-        multi_tf_levels_formatter=multi_tf_levels_formatter,
-        multi_tf_levels_service=multi_tf_levels_service,
-        llm_service=llm_service,
-    )
-
-    price_update_service = PriceUpdateService(
-        alert_repo=alert_repo,
-        bot=bot,
-        subscription_manager=subscription_manager,
-        alert_message_builder=alert_message_builder,
     )
 
     market_data_workflow = MarketDataWorkflow(
@@ -132,13 +110,34 @@ async def main():
     )
     levels_text_builder = LevelsTextBuilder(
         market_data_workflow=market_data_workflow,
-        levels_workflow=levels_workflow,
+        workflows_by_tf=workflows_by_tf,
         levels_formatter=levels_formatter,
     )
 
     levels_manual_service = LevelsManualService(
         session_factory=async_session_maker,
         text_builder=levels_text_builder,
+    )
+
+    h1_levels_workflow = workflows_by_tf[Timeframe.H1]
+
+    h1_levels_service = H1LevelsService(
+        market_data_workflow=market_data_workflow,
+        levels_workflow=h1_levels_workflow,
+    )
+
+    alert_message_builder = AlertMessageBuilder(
+        price_hit_formatter=price_hit_formatter,
+        h1_levels_formatter=h1_levels_formatter,
+        h1_levels_service=h1_levels_service,
+        llm_service=llm_service,
+    )
+
+    price_update_service = PriceUpdateService(
+        alert_repo=alert_repo,
+        bot=bot,
+        subscription_manager=subscription_manager,
+        alert_message_builder=alert_message_builder,
     )
 
     dp.include_router(setup_router(alert_service, market_data_workflow, levels_manual_service))

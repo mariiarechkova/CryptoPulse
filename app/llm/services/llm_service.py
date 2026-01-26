@@ -13,7 +13,7 @@ class LLMService:
         self,
         client: LLMClient,
         enabled: bool,
-        timeout_seconds: int = 8,
+        timeout_seconds: int = 25,
     ) -> None:
         self._client = client
         self._enabled = enabled
