@@ -8,6 +8,7 @@ from websockets import ConnectionClosed
 BYBIT_WS_PUBLIC_URL = "wss://stream.bybit.com/v5/public/spot"
 logger = logging.getLogger(__name__)
 
+
 class BybitWebSocketClient:
     def __init__(self):
         self._ws = None
